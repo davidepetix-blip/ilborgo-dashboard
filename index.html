@@ -708,11 +708,36 @@ function updateAuthUI(connected) {
     txt.innerHTML='<span class="sync-dot sync-ok"></span> Connesso a Google';
     btnIn.style.display='none'; btnOut.style.display='inline-block';
     if(banner) banner.style.display='none';
+    // Auto-load from Sheets on connect
+    setTimeout(() => autoLoadFromSheets(), 800);
   } else {
     dot.className='sync-dot sync-err';
     txt.innerHTML='<span class="sync-dot sync-err"></span> Non connesso';
     btnIn.style.display='inline-block'; btnOut.style.display='none';
     if(banner) banner.style.display='flex';
+  }
+}
+
+async function autoLoadFromSheets() {
+  if(!accessToken || !gapiReady) return;
+  try {
+    // Check if sheet has data (row 2 exists)
+    const tr = await gapi.client.sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID, range: `${SHEET_TABS.tasks}!A2:A2`
+    });
+    if(!tr.result.values || tr.result.values.length === 0) {
+      // Sheet is empty — first time, export local data
+      log('Prima connessione — esporto dati su Sheets…');
+      await syncToSheets();
+    } else {
+      // Sheet has data — import it
+      log('Caricamento dati da Sheets…');
+      await syncFromSheets();
+      log('✓ Dati aggiornati da Sheets');
+    }
+  } catch(e) {
+    // Sheet may not exist yet
+    await syncToSheets();
   }
 }
 
@@ -769,30 +794,115 @@ async function syncCalendar() {
     if(testRes.status===401||testRes.status===403){log('⚠ Token scaduto — riconnettiti');accessToken=null;localStorage.removeItem('gtoken');updateAuthUI(false);return;}
     if(!testRes.ok){const e=await testRes.json();log('⚠ '+(e.error?.message||testRes.status));return;}
   } catch(e){log('⚠ Impossibile raggiungere Calendar');return;}
-  log('Sincronizzazione Calendar…');
-  let count=0, errors=0;
-  const items=[
-    ...forn.filter(f=>f.scadenza&&f.stato!=='pagato').map(f=>({title:`💳 ${f.nome} — ${eur(f.importo)}`,date:f.scadenza,desc:`Fornitore ${AREE[f.area]?.label||f.area}. ${f.nota||''}`.trim()})),
-    ...tasks.filter(t=>t.scadenza&&!t.done).map(t=>({title:`📋 ${t.testo}`,date:t.scadenza,desc:`${AREE[t.area]?.label||t.area} · Priorità: ${t.priorita}. ${t.note||''}`.trim()})),
+
+  log('Lettura eventi esistenti…');
+  const existing = await getExistingCalEvents(); // tag → eventId
+
+  // Build desired events list with unique tag per item
+  const desired = [
+    ...forn.filter(f=>f.scadenza&&f.stato!=='pagato').map(f=>({
+      tag: `forn-${f.id}`,
+      title: `💳 ${f.nome} — ${eur(f.importo)}`,
+      date: f.scadenza,
+      desc: `Fornitore ${AREE[f.area]?.label||f.area}. ${f.nota||''}`.trim()
+    })),
+    ...tasks.filter(t=>t.scadenza&&!t.done).map(t=>({
+      tag: `task-${t.id}`,
+      title: `📋 ${t.testo}`,
+      date: t.scadenza,
+      desc: `${AREE[t.area]?.label||t.area} · Priorità: ${t.priorita}. ${t.note||''}`.trim()
+    })),
   ];
-  for(const item of items){
-    try {
-      const exists=await calEventExists(item.title,item.date);
-      if(!exists){await createCalEvent(item.title,item.date,item.desc);count++;}
-    } catch(e){errors++;}
+
+  // Also delete events for completed/paid items that are still on calendar
+  const desiredTags = new Set(desired.map(d=>d.tag));
+  let created=0, updated=0, deleted=0, errors=0;
+
+  // Delete orphaned events (task done or forn pagato but still on calendar)
+  for(const [tag, evId] of Object.entries(existing)){
+    if(!desiredTags.has(tag)){
+      try { await deleteCalEvent(evId); deleted++; } catch(e){ errors++; }
+    }
   }
-  if(errors>0) log(`✓ ${count} eventi creati · ⚠ ${errors} errori`);
-  else if(count===0) log('✓ Calendar aggiornato — nessun nuovo evento');
-  else log(`✓ ${count} nuovi eventi su Calendar`);
+
+  // Create or update desired events
+  for(const item of desired){
+    try {
+      if(existing[item.tag]){
+        // Event exists — update it (handles date/title changes)
+        await updateCalEvent(existing[item.tag], item.title, item.date, item.desc, item.tag);
+        updated++;
+      } else {
+        // New event
+        await createCalEvent(item.title, item.date, item.desc, item.tag);
+        created++;
+      }
+    } catch(e){ errors++; }
+  }
+
+  const parts = [];
+  if(created) parts.push(`${created} creati`);
+  if(updated) parts.push(`${updated} aggiornati`);
+  if(deleted) parts.push(`${deleted} rimossi`);
+  if(errors)  parts.push(`⚠ ${errors} errori`);
+  log('✓ Calendar: ' + (parts.length ? parts.join(' · ') : 'nessuna modifica'));
 }
 
-async function calEventExists(summary,date){
-  try{const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL_ID)}/events?timeMin=${date}T00:00:00Z&timeMax=${date}T23:59:59Z&q=${encodeURIComponent(summary.substring(0,40))}`;const res=await fetch(url,{headers:{Authorization:'Bearer '+accessToken}});const d=await res.json();return(d.items||[]).length>0;}catch{return false;}
+// Unique tag embedded in every event description to identify app-managed events
+function calTag(id) { return `[ilborgo:${id}]`; }
+
+async function getExistingCalEvents() {
+  // Fetch ALL future events from calendar and build a lookup by tag
+  try {
+    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL_ID)}/events?timeMin=${oggi()}T00:00:00Z&maxResults=500&singleEvents=true&orderBy=startTime`;
+    const res = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
+    const data = await res.json();
+    const events = data.items || [];
+    // Build map: tag → event id
+    const map = {};
+    events.forEach(ev => {
+      const desc = ev.description || '';
+      const match = desc.match(/\[ilborgo:([^\]]+)\]/);
+      if (match) map[match[1]] = ev.id;
+    });
+    return map;
+  } catch(e) { return {}; }
 }
-async function createCalEvent(summary,date,description){
-  const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL_ID)}/events`;
-  const res=await fetch(url,{method:'POST',headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},body:JSON.stringify({summary,description,start:{date},end:{date},reminders:{useDefault:false,overrides:[{method:'popup',minutes:480},{method:'popup',minutes:1440}]}})});
-  if(!res.ok){const e=await res.json();throw new Error(e.error?.message||'Errore');}
+
+async function createCalEvent(summary, date, description, tag) {
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL_ID)}/events`;
+  const fullDesc = `${description}\n\n${calTag(tag)}`.trim();
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      summary, description: fullDesc,
+      start: { date }, end: { date },
+      reminders: { useDefault: false, overrides: [{ method:'popup', minutes:480 }, { method:'popup', minutes:1440 }] }
+    })
+  });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || 'Errore'); }
+}
+
+async function updateCalEvent(eventId, summary, date, description, tag) {
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL_ID)}/events/${eventId}`;
+  const fullDesc = `${description}\n\n${calTag(tag)}`.trim();
+  await fetch(url, {
+    method: 'PUT',
+    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      summary, description: fullDesc,
+      start: { date }, end: { date },
+      reminders: { useDefault: false, overrides: [{ method:'popup', minutes:480 }, { method:'popup', minutes:1440 }] }
+    })
+  });
+}
+
+async function deleteCalEvent(eventId) {
+  await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL_ID)}/events/${eventId}`, {
+    method: 'DELETE',
+    headers: { Authorization: 'Bearer ' + accessToken }
+  });
 }
 
 function saveConfig(){
