@@ -306,6 +306,7 @@ button{cursor:pointer;font-family:var(--font);}
         <button class="btn-ghost" onclick="syncFromSheets()">↓ Importa da Sheets</button>
         <button class="btn-ghost" onclick="syncToSheets()">↑ Esporta su Sheets</button>
         <button class="btn-ghost" onclick="syncCalendar()">📅 Sincronizza Calendar</button>
+        <button class="btn-ghost" style="color:#C87878;border-color:#C8787844" onclick="cleanCalendar()">🗑 Pulisci Calendar</button>
         <div id="sync-log" style="width:100%;font-size:11px;color:var(--text3);margin-top:8px;font-family:var(--mono)"></div>
       </div>
     </div>
@@ -849,29 +850,44 @@ async function syncCalendar() {
 }
 
 // Unique tag embedded in every event description to identify app-managed events
-function calTag(id) { return `[ilborgo:${id}]`; }
+function calTag(id) { return `ILBORGO_ID:${id}`; }
+function extractTag(desc) {
+  if (!desc) return null;
+  const match = desc.match(/ILBORGO_ID:([A-Za-z0-9_-]+)/);
+  return match ? match[1] : null;
+}
 
 async function getExistingCalEvents() {
-  // Fetch ALL future events from calendar and build a lookup by tag
+  // Fetch ALL app-managed events from calendar, paginate if needed
+  const map = {};
   try {
-    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL_ID)}/events?timeMin=${oggi()}T00:00:00Z&maxResults=500&singleEvents=true&orderBy=startTime`;
-    const res = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
-    const data = await res.json();
-    const events = data.items || [];
-    // Build map: tag → event id
-    const map = {};
-    events.forEach(ev => {
-      const desc = ev.description || '';
-      const match = desc.match(/\[ilborgo:([^\]]+)\]/);
-      if (match) map[match[1]] = ev.id;
-    });
-    return map;
-  } catch(e) { return {}; }
+    let pageToken = null;
+    do {
+      let url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL_ID)}/events?maxResults=250&singleEvents=true&orderBy=startTime`;
+      if (pageToken) url += `&pageToken=${pageToken}`;
+      const res = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
+      const data = await res.json();
+      (data.items || []).forEach(ev => {
+        const tag = extractTag(ev.description || '');
+        if (tag) {
+          if (map[tag]) {
+            // Duplicate found — mark older one for deletion
+            map['__dup__' + ev.id] = ev.id;
+          } else {
+            map[tag] = ev.id;
+          }
+        }
+      });
+      pageToken = data.nextPageToken || null;
+    } while (pageToken);
+  } catch(e) { console.error('getExistingCalEvents error:', e); }
+  return map;
 }
 
 async function createCalEvent(summary, date, description, tag) {
   const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL_ID)}/events`;
-  const fullDesc = `${description}\n\n${calTag(tag)}`.trim();
+  // Tag is appended inline so regex can always find it
+  const fullDesc = (description ? description + ' ' : '') + calTag(tag);
   const res = await fetch(url, {
     method: 'POST',
     headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
@@ -886,7 +902,7 @@ async function createCalEvent(summary, date, description, tag) {
 
 async function updateCalEvent(eventId, summary, date, description, tag) {
   const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL_ID)}/events/${eventId}`;
-  const fullDesc = `${description}\n\n${calTag(tag)}`.trim();
+  const fullDesc = (description ? description + ' ' : '') + calTag(tag);
   await fetch(url, {
     method: 'PUT',
     headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
