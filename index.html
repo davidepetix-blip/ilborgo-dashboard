@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Il Borgo"/>
+<title>Il Borgo · Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:#0B0B0E; --bg2:#111116; --bg3:#16161D;
+  --border:#1E1E2A; --border2:#2A2A38;
+  --text:#DDD5C5; --text2:#888070; --text3:#444;
+  --gold:#C8A96E; --green:#7EB8A0; --red:#C87878; --blue:#8EAFD4;
+  --font:'EB Garamond',Georgia,serif; --mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:16px;}
+::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-track{background:var(--bg);} ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+input,select,textarea{font-family:var(--font);}
+input::placeholder,textarea::placeholder{color:var(--text3);}
+select option{background:var(--bg3);color:var(--text);}
+button{cursor:pointer;font-family:var(--font);}
+
+#app{display:flex;flex-direction:column;min-height:100vh;}
+
+/* HEADER */
+#header{background:var(--bg2);border-bottom:1px solid var(--border);padding:18px 24px 0;position:sticky;top:0;z-index:100;}
+#header-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
+#header-eyebrow{font-size:10px;letter-spacing:3px;color:var(--text3);text-transform:uppercase;margin-bottom:4px;font-family:var(--mono);}
+#header-name{font-size:20px;font-weight:400;color:#F0E8D5;}
+#header-stats{display:flex;gap:20px;align-items:center;}
+.stat-box{text-align:right;}
+.stat-num{font-size:20px;font-weight:400;line-height:1;margin-bottom:2px;}
+.stat-label{font-size:9px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;font-family:var(--mono);}
+.stat-divider{width:1px;height:30px;background:var(--border);}
+#tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;}
+#tabs::-webkit-scrollbar{display:none;}
+.tab-btn{padding:8px 16px;font-size:12px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text3);white-space:nowrap;transition:all 0.15s;letter-spacing:0.3px;}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);}
+#main{flex:1;padding:24px;max-width:900px;margin:0 auto;width:100%;}
+
+/* AUTH BANNER */
+#auth-banner{background:linear-gradient(135deg,#12100A,#181410);border:1px solid #3A2A10;border-left:3px solid var(--gold);border-radius:10px;padding:20px 22px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+#auth-banner p{font-size:13px;color:var(--text2);line-height:1.6;}
+#auth-banner strong{color:var(--gold);}
+
+/* CARDS */
+.cards-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:600px){.cards-grid{grid-template-columns:1fr;}#header-stats{gap:12px;}.stat-num{font-size:16px;}}
+.area-card{border-radius:10px;padding:18px 20px;border:1px solid var(--border);background:var(--bg2);border-top-width:2px;}
+.area-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;}
+.area-card-title{font-size:15px;color:#F0E8D5;}
+.area-card-sub{font-size:10px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;font-family:var(--mono);margin-top:2px;}
+.area-card-nums{display:flex;gap:18px;margin-bottom:12px;}
+.area-card-num-val{font-size:22px;font-weight:400;line-height:1;}
+.area-card-num-lbl{font-size:9px;color:var(--text3);letter-spacing:2px;text-transform:uppercase;font-family:var(--mono);}
+.area-card-tasks{border-top:1px solid var(--border);padding-top:10px;}
+.area-task-row{display:flex;align-items:center;gap:8px;padding:4px 0;}
+.area-task-row span{font-size:12px;color:#AAA;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* FOCUS */
+#focus-banner{background:#0A0A0E;border:1px solid #C8A96E55;border-radius:12px;padding:28px;margin-bottom:24px;text-align:center;}
+#focus-eyebrow{font-size:10px;letter-spacing:4px;color:var(--gold);margin-bottom:14px;text-transform:uppercase;font-family:var(--mono);}
+#focus-area{font-size:11px;color:var(--text3);margin-bottom:8px;}
+#focus-title{font-size:22px;color:#F5EDE0;margin-bottom:10px;line-height:1.4;}
+#focus-note{font-size:13px;color:var(--text2);margin-bottom:20px;}
+#focus-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+
+/* FILTERS + SORT */
+.filter-bar{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;flex:1;}
+.filter-bar::-webkit-scrollbar{display:none;}
+.filter-btn{padding:5px 14px;border-radius:20px;font-size:11px;background:transparent;border:1px solid var(--border);color:var(--text3);white-space:nowrap;transition:all 0.15s;}
+.filter-btn.active{background:var(--bg3);border-color:var(--border2);color:var(--gold);}
+.sort-select{background:var(--bg3);border:1px solid var(--border2);color:var(--text3);border-radius:20px;padding:5px 10px;font-size:11px;font-family:var(--mono);outline:none;white-space:nowrap;}
+
+.section-title{font-size:10px;letter-spacing:3px;color:var(--text3);text-transform:uppercase;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border);font-family:var(--mono);}
+
+/* TASK ROW */
+.task-row{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:13px 16px;display:flex;align-items:center;gap:12px;transition:all 0.2s;border-left-width:3px;user-select:none;-webkit-user-select:none;}
+.task-row.dimmed{opacity:0.3;}
+.task-row.dragging{opacity:0.5;transform:scale(0.98);}
+.task-row.drag-over{border-top:2px solid var(--gold);}
+.task-row-body{flex:1;min-width:0;}
+.task-row-title{font-size:14px;color:#DDD5C5;margin-bottom:4px;}
+.task-row-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.task-actions{display:flex;gap:5px;flex-shrink:0;}
+
+/* FORN ROW */
+.forn-row{background:var(--bg2);border:1px solid var(--border);border-left-width:3px;border-radius:8px;padding:13px 16px;display:flex;align-items:center;gap:12px;margin-bottom:7px;flex-wrap:wrap;user-select:none;-webkit-user-select:none;}
+.forn-body{flex:1;min-width:160px;}
+.forn-name{font-size:14px;color:#DDD5C5;margin-bottom:4px;}
+.forn-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.forn-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;min-width:90px;}
+.forn-importo{font-size:16px;color:var(--text);}
+.forn-scad{font-size:11px;font-family:var(--mono);}
+
+/* NOTES */
+.notes-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:600px){.notes-grid{grid-template-columns:1fr;}}
+.note-card{background:var(--bg2);border:1px solid var(--border);border-top-width:2px;border-radius:10px;padding:18px;}
+.note-card-title{font-size:13px;margin-bottom:12px;}
+.note-textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:12px;color:#CCC5B8;font-size:13px;font-family:var(--font);resize:vertical;outline:none;line-height:1.7;min-height:140px;}
+
+/* FORM */
+.form-box{background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:20px;margin-bottom:20px;animation:fadeIn 0.2s ease;}
+.form-grid{display:grid;gap:10px;}
+.form-grid-2{grid-template-columns:1fr 1fr;}
+.form-grid-3{grid-template-columns:2fr 1fr 1fr;}
+@media(max-width:500px){.form-grid-2,.form-grid-3{grid-template-columns:1fr;}}
+.form-label{font-size:10px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:5px;font-family:var(--mono);}
+.inp{width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:9px 12px;color:var(--text);font-size:14px;outline:none;transition:border-color 0.15s;}
+.inp:focus{border-color:var(--gold);}
+.sel{width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:9px 12px;color:var(--text);font-size:13px;outline:none;}
+
+/* BUTTONS */
+.btn-gold{background:var(--gold);color:#0B0B0E;border:none;border-radius:6px;padding:9px 20px;font-size:13px;transition:opacity 0.15s;}
+.btn-gold:hover{opacity:0.85;}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--text3);border-radius:6px;padding:7px 13px;font-size:12px;transition:all 0.15s;}
+.btn-ghost:hover{border-color:var(--gold);color:var(--gold);}
+.btn-ghost-colored{background:transparent;border-radius:6px;padding:8px 16px;font-size:12px;border-width:1px;border-style:solid;}
+.btn-icon{background:transparent;border:1px solid var(--border);color:var(--text3);border-radius:5px;padding:5px 9px;font-size:11px;transition:all 0.15s;}
+.btn-icon:hover{border-color:var(--border2);color:var(--text);}
+.btn-add-bar{background:var(--gold);color:#0B0B0E;border:none;border-radius:6px;padding:8px 16px;font-size:12px;flex-shrink:0;}
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:10px;letter-spacing:0.3px;border-width:1px;border-style:solid;white-space:nowrap;font-family:var(--mono);}
+.done-row{display:flex;align-items:center;gap:10px;padding:11px 14px;margin-bottom:6px;background:#0E0E12;border:1px solid #1A1A22;border-radius:8px;flex-wrap:wrap;}
+.done-row .done-text{font-size:13px;color:#4A4A5A;text-decoration:line-through;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.done-row .done-area{font-size:10px;color:#333;font-family:var(--mono);white-space:nowrap;}
+.btn-restore{background:transparent;border:1px solid #C8A96E33;color:#C8A96E;border-radius:5px;padding:4px 10px;font-size:11px;transition:all 0.15s;white-space:nowrap;}
+.btn-restore:hover{background:#C8A96E18;border-color:#C8A96E66;}
+.empty-state{text-align:center;color:var(--text3);padding:40px;font-size:14px;}
+
+/* CONTEXT MENU */
+#ctx-menu{position:fixed;background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:6px;z-index:999;min-width:180px;box-shadow:0 8px 32px rgba(0,0,0,0.6);animation:fadeIn 0.15s ease;}
+#ctx-menu button{display:block;width:100%;text-align:left;background:transparent;border:none;color:var(--text);padding:10px 14px;font-size:13px;font-family:var(--font);border-radius:6px;transition:background 0.1s;}
+#ctx-menu button:hover{background:var(--border);}
+#ctx-menu .ctx-danger{color:var(--red);}
+#ctx-menu .ctx-sep{height:1px;background:var(--border);margin:4px 0;}
+
+/* EDIT MODAL */
+#edit-modal{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn 0.2s ease;}
+#edit-box{background:var(--bg3);border:1px solid var(--border2);border-radius:14px;padding:24px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;}
+#edit-title{font-size:11px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;font-family:var(--mono);margin-bottom:18px;}
+
+/* NOTIF BANNER */
+#notif-banner{background:#12100A;border:1px solid #3A2A10;border-left:3px solid var(--gold);border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:var(--text2);}
+
+/* SYNC */
+.sync-dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:5px;}
+.sync-ok{background:var(--green);} .sync-err{background:var(--red);} .sync-ing{background:var(--gold);animation:pulse 1s infinite;}
+
+/* DRAG HANDLE */
+.drag-handle{color:var(--text3);font-size:14px;cursor:grab;padding:0 4px;touch-action:none;flex-shrink:0;}
+.drag-handle:active{cursor:grabbing;}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <div id="header-top">
+      <div id="header-title">
+        <div id="header-eyebrow">Montedoro · Gestione Operativa</div>
+        <div id="header-name">Il Borgo srl <span style="color:#2E2E3A;margin:0 10px">·</span><span style="color:#666;font-size:17px">Salvo Luigi</span></div>
+      </div>
+      <div id="header-stats">
+        <div class="stat-box"><div class="stat-num" id="stat-urgenti" style="color:#C87878">—</div><div class="stat-label">Urgenti</div></div>
+        <div class="stat-divider"></div>
+        <div class="stat-box"><div class="stat-num" id="stat-pagamenti" style="color:#C8A96E">—</div><div class="stat-label">Da pagare</div></div>
+        <div class="stat-divider"></div>
+        <div class="stat-box"><div class="stat-num" id="stat-scadenze" style="color:#7EB8A0">—</div><div class="stat-label">Scadenze</div></div>
+      </div>
+    </div>
+    <div id="tabs">
+      <button class="tab-btn active" onclick="switchTab('overview')">Panoramica</button>
+      <button class="tab-btn" onclick="switchTab('tasks')">Attività</button>
+      <button class="tab-btn" onclick="switchTab('fornitori')">Fornitori</button>
+      <button class="tab-btn" onclick="switchTab('appunti')">Note</button>
+      <button class="tab-btn" onclick="switchTab('impostazioni')">⚙ Sync</button>
+    </div>
+  </div>
+
+  <div id="main">
+    <!-- OVERVIEW -->
+    <div id="tab-overview">
+      <div id="auth-banner">
+        <p><strong>Connetti Google</strong> per sincronizzare con Sheets e Calendar.</p>
+        <button class="btn-gold" onclick="switchTab('impostazioni')">Connetti →</button>
+      </div>
+      <div id="next-task-banner" style="display:none"></div>
+      <div id="focus-mode" style="display:none"></div>
+      <div class="cards-grid" id="area-cards"></div>
+    </div>
+
+    <!-- TASKS -->
+    <div id="tab-tasks" style="display:none">
+      <div id="notif-banner-tasks" style="display:none" class="notif-banner"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap">
+        <div class="filter-bar" id="tasks-filter-bar"></div>
+        <button class="btn-add-bar" onclick="toggleForm('task-form')">+ Attività</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+        <span style="font-size:10px;color:var(--text3);font-family:var(--mono);letter-spacing:2px">ORDINA:</span>
+        <select class="sort-select" id="tasks-sort" onchange="renderTasks()">
+          <option value="priorita">Priorità</option>
+          <option value="scadenza">Scadenza</option>
+          <option value="area">Area</option>
+          <option value="manuale">Manuale</option>
+        </select>
+        <span style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-left:8px">· tieni premuto per opzioni</span>
+      </div>
+      <div id="task-form" class="form-box" style="display:none">
+        <div class="form-grid form-grid-3" style="margin-bottom:10px">
+          <div style="grid-column:1/-1"><input class="inp" id="t-testo" placeholder="Descrizione attività..." onkeydown="if(event.key==='Enter')saveTask()"/></div>
+          <div><div class="form-label">Area</div><select class="sel" id="t-area"></select></div>
+          <div><div class="form-label">Priorità</div><select class="sel" id="t-priorita"><option value="urgente">🔥 Urgente</option><option value="normale" selected>⚡ Normale</option><option value="bassa">🌱 Bassa</option></select></div>
+          <div><div class="form-label">Scadenza</div><input class="inp" type="date" id="t-scadenza"/></div>
+          <div style="grid-column:1/-1"><input class="inp" id="t-note" placeholder="Note (opzionale)"/></div>
+        </div>
+        <button class="btn-gold" onclick="saveTask()">Aggiungi</button>
+      </div>
+      <div id="task-list-active"></div>
+      <div id="task-list-done-wrap" style="display:none">
+        <div class="section-title" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center" onclick="toggleDoneList()">
+          <span><span id="done-arrow">▸</span> Completate (<span id="done-count">0</span>)</span>
+          <span style="font-size:10px;color:var(--text3)">tocca per espandere</span>
+        </div>
+        <div id="task-list-done" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- FORNITORI -->
+    <div id="tab-fornitori" style="display:none">
+      <div id="forn-totals" class="cards-grid" style="margin-bottom:24px"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap">
+        <div class="filter-bar" id="forn-filter-bar"></div>
+        <button class="btn-add-bar" onclick="toggleForm('forn-form')">+ Fornitore</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+        <span style="font-size:10px;color:var(--text3);font-family:var(--mono);letter-spacing:2px">ORDINA:</span>
+        <select class="sort-select" id="forn-sort" onchange="renderFornitori()">
+          <option value="scadenza">Scadenza</option>
+          <option value="importo">Importo</option>
+          <option value="area">Area</option>
+          <option value="manuale">Manuale</option>
+        </select>
+        <span style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-left:8px">· tieni premuto per opzioni</span>
+      </div>
+      <div id="forn-form" class="form-box" style="display:none">
+        <div class="form-grid form-grid-2" style="margin-bottom:10px">
+          <div><input class="inp" id="f-nome" placeholder="Nome fornitore..."/></div>
+          <div><input class="inp" id="f-importo" type="number" placeholder="Importo €"/></div>
+          <div><div class="form-label">Area</div><select class="sel" id="f-area"></select></div>
+          <div><div class="form-label">Scadenza</div><input class="inp" type="date" id="f-scadenza"/></div>
+          <div style="grid-column:1/-1"><input class="inp" id="f-nota" placeholder="Nota (es. n. fattura)"/></div>
+        </div>
+        <button class="btn-gold" onclick="saveForn()">Aggiungi</button>
+      </div>
+      <div class="section-title">Da saldare</div>
+      <div id="forn-list-active"></div>
+      <div class="section-title" style="margin-top:20px">Pagati</div>
+      <div id="forn-list-done"></div>
+    </div>
+
+    <!-- NOTE -->
+    <div id="tab-appunti" style="display:none">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.7">Spazio libero per ogni area — salvato automaticamente nel browser.</p>
+      <div class="notes-grid" id="notes-grid"></div>
+    </div>
+
+    <!-- SYNC -->
+    <div id="tab-impostazioni" style="display:none">
+      <div class="section-title">Connessione Google</div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:22px;margin-bottom:20px">
+        <div id="google-status" style="display:flex;align-items:center;gap:10px;margin-bottom:18px;font-size:13px;color:var(--text2)">
+          <span class="sync-dot sync-err"></span> Non connesso
+        </div>
+        <button class="btn-gold" id="btn-google-signin" onclick="signIn()">Accedi con Google</button>
+        <button class="btn-ghost" id="btn-google-signout" onclick="signOut()" style="display:none;margin-left:10px">Disconnetti</button>
+      </div>
+      <div class="section-title">Notifiche Push</div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:22px;margin-bottom:20px">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6">Ricevi notifiche dal browser anche senza aprire l'app — il giorno della scadenza e il giorno prima.</p>
+        <button class="btn-gold" id="btn-notif" onclick="requestNotifPermission()">Attiva notifiche</button>
+        <div id="notif-status" style="font-size:11px;color:var(--text3);margin-top:8px;font-family:var(--mono)"></div>
+      </div>
+      <div class="section-title">Configurazione</div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:22px;margin-bottom:20px">
+        <div style="margin-bottom:14px">
+          <div class="form-label">Google Sheet ID</div>
+          <input class="inp" id="cfg-sheet-id" value="1tuO4m5MABDGmLb63_42sV3ikWXsO_eexLWg6Vx0eBf0"/>
+        </div>
+        <div style="margin-bottom:14px">
+          <div class="form-label">Calendar ID</div>
+          <input class="inp" id="cfg-cal-id" value="c5glbck4juqq4f9r5k6d13tbl4@group.calendar.google.com"/>
+        </div>
+        <button class="btn-gold" onclick="saveConfig()">Salva configurazione</button>
+      </div>
+      <div class="section-title">Sincronizzazione</div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:22px;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn-ghost" onclick="syncFromSheets()">↓ Importa da Sheets</button>
+        <button class="btn-ghost" onclick="syncToSheets()">↑ Esporta su Sheets</button>
+        <button class="btn-ghost" onclick="syncCalendar()">📅 Sincronizza Calendar</button>
+        <div id="sync-log" style="width:100%;font-size:11px;color:var(--text3);margin-top:8px;font-family:var(--mono)"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTEXT MENU -->
+<div id="ctx-menu" style="display:none"></div>
+
+<!-- EDIT MODAL -->
+<div id="edit-modal" style="display:none">
+  <div id="edit-box">
+    <div id="edit-title">Modifica</div>
+    <div id="edit-form-content"></div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn-gold" onclick="saveEdit()">Salva</button>
+      <button class="btn-ghost" onclick="closeEdit()">Annulla</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js"></script>
+<script>
+// ═══════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════
+const CLIENT_ID = '850622821617-7l6ll27pfs5hkfng3savskud4pqjiqcn.apps.googleusercontent.com';
+const SCOPES    = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/calendar';
+const SHEET_TABS = { tasks:'Attività', forn:'Fornitori', notes:'Note' };
+let SHEET_ID = localStorage.getItem('cfg_sheet_id') || '1tuO4m5MABDGmLb63_42sV3ikWXsO_eexLWg6Vx0eBf0';
+let CAL_ID   = localStorage.getItem('cfg_cal_id')   || 'c5glbck4juqq4f9r5k6d13tbl4@group.calendar.google.com';
+let accessToken = null;
+let gapiReady = false;
+let currentTab = 'overview';
+let focusTaskId = null;
+let showDone = false;
+let filterArea = { tasks:'all', forn:'all' };
+let nextId = Date.now();
+
+// edit state
+let editTarget = null; // {type:'task'|'forn', id}
+
+// drag state
+let dragSrcIdx = null;
+let dragType   = null;
+
+const AREE = {
+  borgo_admin:{ label:'Il Borgo srl',       sub:'Amministrazione',      icon:'⚖️', color:'#C8A96E' },
+  affitti:    { label:'Affitti',             sub:'Appartamenti privati', icon:'🏠', color:'#7EB8A0' },
+  hospitality:{ label:'Ristorante/Albergo', sub:'Operativo',            icon:'🍽️', color:'#C87878' },
+  salvo:      { label:'Salvo Luigi',         sub:'Progettazione legno',  icon:'📐', color:'#8EAFD4' },
+};
+const PRIO_COLOR = { urgente:'#C87878', normale:'#C8A96E', bassa:'#555' };
+const STATO_PAG  = { da_pagare:{label:'Da pagare',color:'#C87878'}, in_scadenza:{label:'In scadenza',color:'#C8A060'}, pagato:{label:'Pagato',color:'#7EB8A0'} };
+
+// ═══════════════════════════════════
+// DATA
+// ═══════════════════════════════════
+let tasks = JSON.parse(localStorage.getItem('tasks')||'null') || [
+  {id:1,area:'borgo_admin',testo:'Rinnovo contratto gestione immobile Comune',priorita:'urgente',note:'Scade il 15 del mese',scadenza:'',done:false,ord:0},
+  {id:2,area:'affitti',    testo:'Verifica check-in appartamento Via Roma 4', priorita:'urgente',note:'Ospite arriva venerdì',scadenza:'',done:false,ord:1},
+  {id:3,area:'hospitality',testo:'Ordine settimanale fornitore bevande',       priorita:'normale',note:'',scadenza:'',done:false,ord:2},
+  {id:4,area:'salvo',      testo:'Aggiorna tavole progetto casa in legno',     priorita:'normale',note:'Cliente attende risposta',scadenza:'',done:false,ord:3},
+  {id:5,area:'borgo_admin',testo:'F24 contributi dipendenti ristorante',       priorita:'urgente',note:'',scadenza:'',done:false,ord:4},
+];
+let forn = JSON.parse(localStorage.getItem('forn')||'null') || [
+  {id:10,area:'hospitality',nome:'Macelleria Catalanotto',   importo:380, scadenza:'2026-03-08',stato:'in_scadenza',nota:'Fattura n.12',ord:0},
+  {id:11,area:'hospitality',nome:'Consorzio vini Sicilia',    importo:620, scadenza:'2026-03-12',stato:'da_pagare',  nota:'',ord:1},
+  {id:12,area:'borgo_admin', nome:'Commercialista Gallo',     importo:900, scadenza:'2026-03-15',stato:'da_pagare',  nota:'Contabilità Q1',ord:2},
+  {id:13,area:'affitti',     nome:'Idraulico Di Bella',       importo:240, scadenza:'2026-03-01',stato:'da_pagare',  nota:'Apt. Via Matteotti',ord:3},
+  {id:14,area:'salvo',       nome:'Segheria Ganci Legname',   importo:1150,scadenza:'2026-03-20',stato:'pagato',     nota:'',ord:4},
+  {id:15,area:'hospitality', nome:'Pulizie e lavanderia',     importo:200, scadenza:'2026-03-10',stato:'in_scadenza',nota:'Mensile',ord:5},
+];
+let notes = JSON.parse(localStorage.getItem('notes')||'{}');
+
+function persist() {
+  localStorage.setItem('tasks', JSON.stringify(tasks));
+  localStorage.setItem('forn',  JSON.stringify(forn));
+  localStorage.setItem('notes', JSON.stringify(notes));
+}
+
+// ═══════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════
+function oggi()   { return new Date().toISOString().split('T')[0]; }
+function domani() { const d=new Date(); d.setDate(d.getDate()+1); return d.toISOString().split('T')[0]; }
+function fmtData(d){ if(!d) return '—'; const [y,m,g]=d.split('-'); return `${g}/${m}/${y}`; }
+function ggScad(d){ if(!d) return null; return Math.ceil((new Date(d)-new Date(oggi()))/86400000); }
+function eur(n)   { return '€'+Number(n).toLocaleString('it-IT'); }
+function badgeHtml(txt,color){ return `<span class="badge" style="color:${color};border-color:${color}33;background:${color}14">${txt}</span>`; }
+function areaSelectOpts(selId,val){
+  const s=document.getElementById(selId); if(!s) return;
+  s.innerHTML=Object.entries(AREE).map(([k,v])=>`<option value="${k}"${val===k?' selected':''}>${v.icon} ${v.label}</option>`).join('');
+}
+function toggleForm(id){ const el=document.getElementById(id); el.style.display=el.style.display==='none'?'block':'none'; }
+function toggleDoneList(){
+  showDone=!showDone;
+  const doneEl=document.getElementById('task-list-done');
+  const arrow=document.getElementById('done-arrow');
+  const hint=document.querySelector('#task-list-done-wrap .section-title span:last-child');
+  if(doneEl){ doneEl.style.display=showDone?'block':'none'; }
+  if(arrow){ arrow.textContent=showDone?'▾':'▸'; }
+  if(hint){ hint.textContent=showDone?'tocca per chiudere':'tocca per espandere'; }
+  renderTasks();
+}
+
+// ═══════════════════════════════════
+// CONTEXT MENU
+// ═══════════════════════════════════
+let ctxTimer = null;
+let ctxTarget = null;
+
+function attachLongPress(el, callback) {
+  // Touch
+  el.addEventListener('touchstart', e => {
+    ctxTimer = setTimeout(() => { e.preventDefault(); callback(e.touches[0].clientX, e.touches[0].clientY); }, 600);
+  }, { passive: true });
+  el.addEventListener('touchend',   () => clearTimeout(ctxTimer));
+  el.addEventListener('touchmove',  () => clearTimeout(ctxTimer));
+  // Mouse (desktop)
+  el.addEventListener('contextmenu', e => { e.preventDefault(); callback(e.clientX, e.clientY); });
+}
+
+function showCtxMenu(x, y, items) {
+  const menu = document.getElementById('ctx-menu');
+  menu.innerHTML = items.map(item => {
+    if (item === 'sep') return '<div class="ctx-sep"></div>';
+    return `<button class="${item.danger?'ctx-danger':''}" onclick="closeCtx();${item.action}">${item.icon||''} ${item.label}</button>`;
+  }).join('');
+  // Position
+  menu.style.display = 'block';
+  const mw = 200, mh = items.length * 42;
+  const left = Math.min(x, window.innerWidth  - mw - 10);
+  const top  = Math.min(y, window.innerHeight - mh - 10);
+  menu.style.left = left + 'px';
+  menu.style.top  = top  + 'px';
+  setTimeout(() => document.addEventListener('click', closeCtx, {once:true}), 50);
+}
+
+function closeCtx() { document.getElementById('ctx-menu').style.display = 'none'; }
+
+// ═══════════════════════════════════
+// EDIT MODAL
+// ═══════════════════════════════════
+function openEditTask(id) {
+  const t = tasks.find(x=>x.id===id); if(!t) return;
+  editTarget = {type:'task', id};
+  document.getElementById('edit-title').textContent = 'Modifica Attività';
+  document.getElementById('edit-form-content').innerHTML = `
+    <div class="form-grid" style="gap:10px">
+      <div><div class="form-label">Descrizione</div><input class="inp" id="ed-testo" value="${escHtml(t.testo)}"/></div>
+      <div><div class="form-label">Area</div><select class="sel" id="ed-area"></select></div>
+      <div><div class="form-label">Priorità</div>
+        <select class="sel" id="ed-priorita">
+          <option value="urgente"${t.priorita==='urgente'?' selected':''}>🔥 Urgente</option>
+          <option value="normale"${t.priorita==='normale'?' selected':''}>⚡ Normale</option>
+          <option value="bassa"${t.priorita==='bassa'?' selected':''}>🌱 Bassa</option>
+        </select>
+      </div>
+      <div><div class="form-label">Scadenza</div><input class="inp" type="date" id="ed-scadenza" value="${t.scadenza||''}"/></div>
+      <div><div class="form-label">Note</div><input class="inp" id="ed-note" value="${escHtml(t.note||'')}"/></div>
+    </div>`;
+  areaSelectOpts('ed-area', t.area);
+  document.getElementById('edit-modal').style.display = 'flex';
+}
+
+function openEditForn(id) {
+  const f = forn.find(x=>x.id===id); if(!f) return;
+  editTarget = {type:'forn', id};
+  document.getElementById('edit-title').textContent = 'Modifica Fornitore';
+  document.getElementById('edit-form-content').innerHTML = `
+    <div class="form-grid" style="gap:10px">
+      <div><div class="form-label">Nome</div><input class="inp" id="ed-nome" value="${escHtml(f.nome)}"/></div>
+      <div><div class="form-label">Importo €</div><input class="inp" type="number" id="ed-importo" value="${f.importo}"/></div>
+      <div><div class="form-label">Area</div><select class="sel" id="ed-area"></select></div>
+      <div><div class="form-label">Scadenza</div><input class="inp" type="date" id="ed-scadenza" value="${f.scadenza||''}"/></div>
+      <div><div class="form-label">Stato</div>
+        <select class="sel" id="ed-stato">
+          ${Object.entries(STATO_PAG).map(([k,v])=>`<option value="${k}"${f.stato===k?' selected':''}>${v.label}</option>`).join('')}
+        </select>
+      </div>
+      <div><div class="form-label">Nota</div><input class="inp" id="ed-nota" value="${escHtml(f.nota||'')}"/></div>
+    </div>`;
+  areaSelectOpts('ed-area', f.area);
+  document.getElementById('edit-modal').style.display = 'flex';
+}
+
+function saveEdit() {
+  if (!editTarget) return;
+  if (editTarget.type === 'task') {
+    tasks = tasks.map(t => t.id===editTarget.id ? {
+      ...t,
+      testo:    document.getElementById('ed-testo').value.trim(),
+      area:     document.getElementById('ed-area').value,
+      priorita: document.getElementById('ed-priorita').value,
+      scadenza: document.getElementById('ed-scadenza').value,
+      note:     document.getElementById('ed-note').value.trim(),
+    } : t);
+  } else {
+    forn = forn.map(f => f.id===editTarget.id ? {
+      ...f,
+      nome:     document.getElementById('ed-nome').value.trim(),
+      importo:  parseFloat(document.getElementById('ed-importo').value)||0,
+      area:     document.getElementById('ed-area').value,
+      scadenza: document.getElementById('ed-scadenza').value,
+      stato:    document.getElementById('ed-stato').value,
+      nota:     document.getElementById('ed-nota').value.trim(),
+    } : f);
+  }
+  persist(); closeEdit(); renderAll();
+  if (accessToken) syncToSheets();
+}
+
+function closeEdit() {
+  document.getElementById('edit-modal').style.display = 'none';
+  editTarget = null;
+}
+
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ═══════════════════════════════════
+// DRAG & DROP (touch + mouse)
+// ═══════════════════════════════════
+let touchDragEl = null, touchDragClone = null, touchDragList = null, touchDragStartY = 0;
+
+function initDragRow(el, idx, type) {
+  const handle = el.querySelector('.drag-handle');
+  if (!handle) return;
+
+  // Mouse drag
+  handle.addEventListener('mousedown', e => {
+    e.preventDefault();
+    dragSrcIdx = idx; dragType = type;
+    el.classList.add('dragging');
+    const onUp = () => { el.classList.remove('dragging'); document.removeEventListener('mouseup', onUp); };
+    document.addEventListener('mouseup', onUp);
+  });
+  el.addEventListener('dragstart', e => { dragSrcIdx = idx; dragType = type; e.dataTransfer.effectAllowed='move'; });
+  el.addEventListener('dragover',  e => { e.preventDefault(); el.classList.add('drag-over'); });
+  el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+  el.addEventListener('drop', e => {
+    e.preventDefault(); el.classList.remove('drag-over');
+    if (dragSrcIdx === null || dragSrcIdx === idx || dragType !== type) return;
+    reorder(type, dragSrcIdx, idx);
+    dragSrcIdx = null;
+  });
+  el.draggable = true;
+
+  // Touch drag
+  handle.addEventListener('touchstart', e => {
+    if (ctxTimer) return;
+    touchDragEl   = el;
+    touchDragList = el.parentElement;
+    dragSrcIdx    = idx; dragType = type;
+    touchDragStartY = e.touches[0].clientY;
+    touchDragClone  = el.cloneNode(true);
+    touchDragClone.style.cssText = `position:fixed;left:${el.getBoundingClientRect().left}px;top:${el.getBoundingClientRect().top}px;width:${el.offsetWidth}px;opacity:0.7;z-index:998;pointer-events:none;transition:none;`;
+    document.body.appendChild(touchDragClone);
+    el.style.opacity = '0.3';
+  }, {passive:true});
+
+  handle.addEventListener('touchmove', e => {
+    if (!touchDragClone) return;
+    e.preventDefault();
+    const dy = e.touches[0].clientY - touchDragStartY;
+    touchDragClone.style.top = (parseFloat(touchDragClone.style.top) + dy) + 'px';
+    touchDragStartY = e.touches[0].clientY;
+    // find target
+    const elUnder = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
+    const rowUnder = elUnder?.closest('.task-row, .forn-row');
+    document.querySelectorAll('.drag-over').forEach(x=>x.classList.remove('drag-over'));
+    if (rowUnder && rowUnder !== touchDragEl) rowUnder.classList.add('drag-over');
+  }, {passive:false});
+
+  handle.addEventListener('touchend', e => {
+    if (!touchDragClone) return;
+    document.body.removeChild(touchDragClone);
+    touchDragClone = null;
+    if (touchDragEl) touchDragEl.style.opacity = '';
+    const elUnder = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+    const rowUnder = elUnder?.closest('.task-row, .forn-row');
+    document.querySelectorAll('.drag-over').forEach(x=>x.classList.remove('drag-over'));
+    if (rowUnder && rowUnder !== touchDragEl) {
+      const targetIdx = parseInt(rowUnder.dataset.idx);
+      if (!isNaN(targetIdx)) reorder(type, dragSrcIdx, targetIdx);
+    }
+    dragSrcIdx = null; touchDragEl = null;
+  });
+}
+
+function reorder(type, from, to) {
+  if (type === 'task') {
+    const active = tasks.filter(t=>!t.done).sort((a,b)=>a.ord-b.ord);
+    const item   = active.splice(from, 1)[0];
+    active.splice(to, 0, item);
+    active.forEach((t,i) => { const idx=tasks.findIndex(x=>x.id===t.id); if(idx>=0) tasks[idx].ord=i; });
+    document.getElementById('tasks-sort').value = 'manuale';
+  } else {
+    const active = forn.filter(f=>f.stato!=='pagato').sort((a,b)=>a.ord-b.ord);
+    const item   = active.splice(from, 1)[0];
+    active.splice(to, 0, item);
+    active.forEach((f,i) => { const idx=forn.findIndex(x=>x.id===f.id); if(idx>=0) forn[idx].ord=i; });
+    document.getElementById('forn-sort').value = 'manuale';
+  }
+  persist(); renderAll();
+}
+
+// ═══════════════════════════════════
+// NOTIFICATIONS
+// ═══════════════════════════════════
+async function requestNotifPermission() {
+  if (!('Notification' in window)) { updateNotifStatus('⚠ Il tuo browser non supporta le notifiche'); return; }
+  const perm = await Notification.requestPermission();
+  if (perm === 'granted') {
+    localStorage.setItem('notif_enabled', '1');
+    updateNotifStatus('✓ Notifiche attive');
+    scheduleNotifications();
+    document.getElementById('btn-notif').style.display = 'none';
+  } else {
+    updateNotifStatus('⚠ Permesso negato — abilita le notifiche nelle impostazioni del browser');
+  }
+}
+
+function updateNotifStatus(msg) {
+  const el = document.getElementById('notif-status');
+  if (el) el.textContent = msg;
+}
+
+function scheduleNotifications() {
+  if (Notification.permission !== 'granted') return;
+  const og = oggi(); const dom = domani();
+  const allScad = [
+    ...tasks.filter(t=>!t.done && t.scadenza).map(t=>({title:`📋 ${t.testo}`, date:t.scadenza, sub:AREE[t.area]?.label})),
+    ...forn.filter(f=>f.stato!=='pagato' && f.scadenza).map(f=>({title:`💳 ${f.nome} — ${eur(f.importo)}`, date:f.scadenza, sub:AREE[f.area]?.label})),
+  ];
+  allScad.forEach(item => {
+    if (item.date === og) {
+      new Notification('⏰ Scadenza oggi — Il Borgo', { body: `${item.title}\n${item.sub||''}`, icon: '/favicon.ico' });
+    } else if (item.date === dom) {
+      new Notification('📅 Scade domani — Il Borgo', { body: `${item.title}\n${item.sub||''}`, icon: '/favicon.ico' });
+    }
+  });
+  localStorage.setItem('notif_last_check', og);
+}
+
+function checkAndNotify() {
+  if (Notification.permission !== 'granted') return;
+  if (!localStorage.getItem('notif_enabled')) return;
+  const last = localStorage.getItem('notif_last_check');
+  if (last === oggi()) return; // already notified today
+  scheduleNotifications();
+}
+
+// ═══════════════════════════════════
+// GOOGLE AUTH
+// ═══════════════════════════════════
+function initGapi() {
+  gapi.load('client', async () => {
+    try {
+      await gapi.client.init({ discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'] });
+      gapiReady = true;
+      const saved = localStorage.getItem('gtoken');
+      if (saved) { accessToken=saved; gapi.client.setToken({access_token:saved}); updateAuthUI(true); }
+    } catch(e) { gapiReady=true; }
+  });
+}
+
+function signIn() {
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID, scope: SCOPES, prompt:'consent',
+    callback: (resp) => {
+      if (resp.error) { log('Errore: '+resp.error); return; }
+      accessToken = resp.access_token;
+      if (gapiReady) gapi.client.setToken({access_token:accessToken});
+      localStorage.setItem('gtoken', accessToken);
+      updateAuthUI(true);
+      log('✓ Connesso — Sheets e Calendar attivi');
+      renderAll();
+    }
+  });
+  client.requestAccessToken();
+}
+
+function signOut() {
+  try { google.accounts.oauth2.revoke(accessToken,()=>{}); } catch(e){}
+  accessToken=null; localStorage.removeItem('gtoken');
+  if(gapiReady) gapi.client.setToken(null);
+  updateAuthUI(false); log('Disconnesso');
+}
+
+function updateAuthUI(connected) {
+  const dot=document.querySelector('#google-status .sync-dot');
+  const txt=document.getElementById('google-status');
+  const btnIn=document.getElementById('btn-google-signin');
+  const btnOut=document.getElementById('btn-google-signout');
+  const banner=document.getElementById('auth-banner');
+  if(connected){
+    dot.className='sync-dot sync-ok';
+    txt.innerHTML='<span class="sync-dot sync-ok"></span> Connesso a Google';
+    btnIn.style.display='none'; btnOut.style.display='inline-block';
+    if(banner) banner.style.display='none';
+  } else {
+    dot.className='sync-dot sync-err';
+    txt.innerHTML='<span class="sync-dot sync-err"></span> Non connesso';
+    btnIn.style.display='inline-block'; btnOut.style.display='none';
+    if(banner) banner.style.display='flex';
+  }
+}
+
+// ═══════════════════════════════════
+// SHEETS SYNC
+// ═══════════════════════════════════
+async function ensureSheetTabs() {
+  try {
+    const res=await gapi.client.sheets.spreadsheets.get({spreadsheetId:SHEET_ID});
+    const existing=res.result.sheets.map(s=>s.properties.title);
+    const needed=Object.values(SHEET_TABS).filter(t=>!existing.includes(t));
+    if(!needed.length) return;
+    await gapi.client.sheets.spreadsheets.batchUpdate({spreadsheetId:SHEET_ID,resource:{requests:needed.map(t=>({addSheet:{properties:{title:t}}}))}});
+  } catch(e){log('Errore setup foglio: '+e.message);}
+}
+
+async function syncToSheets() {
+  if(!accessToken||!gapiReady){log('⚠ Connetti prima Google');return;}
+  log('Esportazione su Sheets…'); await ensureSheetTabs();
+  try {
+    const tRows=[['ID','Area','Descrizione','Priorità','Scadenza','Note','Fatto','Ordine']].concat(tasks.map(t=>[t.id,AREE[t.area]?.label||t.area,t.testo,t.priorita,t.scadenza||'',t.note||'',t.done?'SI':'NO',t.ord||0]));
+    await gapi.client.sheets.spreadsheets.values.update({spreadsheetId:SHEET_ID,range:`${SHEET_TABS.tasks}!A1`,valueInputOption:'RAW',resource:{values:tRows}});
+    const fRows=[['ID','Area','Fornitore','Importo','Scadenza','Stato','Nota','Ordine']].concat(forn.map(f=>[f.id,AREE[f.area]?.label||f.area,f.nome,f.importo,f.scadenza||'',f.stato,f.nota||'',f.ord||0]));
+    await gapi.client.sheets.spreadsheets.values.update({spreadsheetId:SHEET_ID,range:`${SHEET_TABS.forn}!A1`,valueInputOption:'RAW',resource:{values:fRows}});
+    const nRows=[['Area','Testo']].concat(Object.entries(notes).map(([k,v])=>[k,v]));
+    await gapi.client.sheets.spreadsheets.values.update({spreadsheetId:SHEET_ID,range:`${SHEET_TABS.notes}!A1`,valueInputOption:'RAW',resource:{values:nRows}});
+    log('✓ Esportato su Sheets');
+  } catch(e){log('Errore Sheets: '+e.message);}
+}
+
+async function syncFromSheets() {
+  if(!accessToken||!gapiReady){log('⚠ Connetti prima Google');return;}
+  log('Importazione da Sheets…');
+  try {
+    const abl=Object.fromEntries(Object.entries(AREE).map(([k,v])=>[v.label,k]));
+    const tr=await gapi.client.sheets.spreadsheets.values.get({spreadsheetId:SHEET_ID,range:`${SHEET_TABS.tasks}!A2:H`});
+    if(tr.result.values) tasks=tr.result.values.map(r=>({id:parseInt(r[0])||Date.now(),area:abl[r[1]]||'borgo_admin',testo:r[2]||'',priorita:r[3]||'normale',scadenza:r[4]||'',note:r[5]||'',done:r[6]==='SI',ord:parseInt(r[7])||0}));
+    const fr=await gapi.client.sheets.spreadsheets.values.get({spreadsheetId:SHEET_ID,range:`${SHEET_TABS.forn}!A2:H`});
+    if(fr.result.values) forn=fr.result.values.map(r=>({id:parseInt(r[0])||Date.now(),area:abl[r[1]]||'hospitality',nome:r[2]||'',importo:parseFloat(r[3])||0,scadenza:r[4]||'',stato:r[5]||'da_pagare',nota:r[6]||'',ord:parseInt(r[7])||0}));
+    const nr=await gapi.client.sheets.spreadsheets.values.get({spreadsheetId:SHEET_ID,range:`${SHEET_TABS.notes}!A2:B`});
+    if(nr.result.values) nr.result.values.forEach(r=>{if(r[0]) notes[r[0]]=r[1]||'';});
+    persist(); renderAll(); log('✓ Importato da Sheets');
+  } catch(e){log('Errore importazione: '+e.message);}
+}
+
+// ═══════════════════════════════════
+// CALENDAR SYNC
+// ═══════════════════════════════════
+async function syncCalendar() {
+  if(!accessToken){log('⚠ Connetti prima Google');return;}
+  log('Verifica accesso Calendar…');
+  try {
+    const testRes=await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL_ID)}`,{headers:{Authorization:'Bearer '+accessToken}});
+    if(testRes.status===401||testRes.status===403){log('⚠ Token scaduto — riconnettiti');accessToken=null;localStorage.removeItem('gtoken');updateAuthUI(false);return;}
+    if(!testRes.ok){const e=await testRes.json();log('⚠ '+(e.error?.message||testRes.status));return;}
+  } catch(e){log('⚠ Impossibile raggiungere Calendar');return;}
+  log('Sincronizzazione Calendar…');
+  let count=0, errors=0;
+  const items=[
+    ...forn.filter(f=>f.scadenza&&f.stato!=='pagato').map(f=>({title:`💳 ${f.nome} — ${eur(f.importo)}`,date:f.scadenza,desc:`Fornitore ${AREE[f.area]?.label||f.area}. ${f.nota||''}`.trim()})),
+    ...tasks.filter(t=>t.scadenza&&!t.done).map(t=>({title:`📋 ${t.testo}`,date:t.scadenza,desc:`${AREE[t.area]?.label||t.area} · Priorità: ${t.priorita}. ${t.note||''}`.trim()})),
+  ];
+  for(const item of items){
+    try {
+      const exists=await calEventExists(item.title,item.date);
+      if(!exists){await createCalEvent(item.title,item.date,item.desc);count++;}
+    } catch(e){errors++;}
+  }
+  if(errors>0) log(`✓ ${count} eventi creati · ⚠ ${errors} errori`);
+  else if(count===0) log('✓ Calendar aggiornato — nessun nuovo evento');
+  else log(`✓ ${count} nuovi eventi su Calendar`);
+}
+
+async function calEventExists(summary,date){
+  try{const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL_ID)}/events?timeMin=${date}T00:00:00Z&timeMax=${date}T23:59:59Z&q=${encodeURIComponent(summary.substring(0,40))}`;const res=await fetch(url,{headers:{Authorization:'Bearer '+accessToken}});const d=await res.json();return(d.items||[]).length>0;}catch{return false;}
+}
+async function createCalEvent(summary,date,description){
+  const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL_ID)}/events`;
+  const res=await fetch(url,{method:'POST',headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},body:JSON.stringify({summary,description,start:{date},end:{date},reminders:{useDefault:false,overrides:[{method:'popup',minutes:480},{method:'popup',minutes:1440}]}})});
+  if(!res.ok){const e=await res.json();throw new Error(e.error?.message||'Errore');}
+}
+
+function saveConfig(){
+  SHEET_ID=document.getElementById('cfg-sheet-id').value.trim();
+  CAL_ID=document.getElementById('cfg-cal-id').value.trim();
+  localStorage.setItem('cfg_sheet_id',SHEET_ID);
+  localStorage.setItem('cfg_cal_id',CAL_ID);
+  log('✓ Configurazione salvata');
+}
+
+function log(msg){const el=document.getElementById('sync-log');if(el){el.textContent=msg;setTimeout(()=>{if(el.textContent===msg)el.textContent='';},6000);}}
+
+// ═══════════════════════════════════
+// TASK ACTIONS
+// ═══════════════════════════════════
+function saveTask(){
+  const testo=document.getElementById('t-testo').value.trim(); if(!testo) return;
+  const maxOrd=tasks.length>0?Math.max(...tasks.map(t=>t.ord||0))+1:0;
+  tasks.push({id:nextId++,area:document.getElementById('t-area').value,testo,priorita:document.getElementById('t-priorita').value,scadenza:document.getElementById('t-scadenza').value,note:document.getElementById('t-note').value.trim(),done:false,ord:maxOrd});
+  persist();
+  document.getElementById('t-testo').value=''; document.getElementById('t-note').value=''; document.getElementById('t-scadenza').value='';
+  document.getElementById('task-form').style.display='none';
+  renderAll(); if(accessToken) syncToSheets();
+}
+function markTaskDone(id){tasks=tasks.map(t=>t.id===id?{...t,done:true}:t);if(focusTaskId===id)focusTaskId=null;persist();renderAll();if(accessToken)syncToSheets();}
+function deleteTask(id){tasks=tasks.filter(t=>t.id!==id);if(focusTaskId===id)focusTaskId=null;persist();renderAll();if(accessToken)syncToSheets();}
+function restoreTask(id){tasks=tasks.map(t=>t.id===id?{...t,done:false}:t);persist();renderAll();if(accessToken)syncToSheets();}
+function restoreForn(id){forn=forn.map(f=>f.id===id?{...f,stato:'da_pagare'}:f);persist();renderAll();if(accessToken)syncToSheets();}
+function setFocus(id){focusTaskId=focusTaskId===id?null:id;renderAll();}
+
+// ═══════════════════════════════════
+// FORN ACTIONS
+// ═══════════════════════════════════
+function saveForn(){
+  const nome=document.getElementById('f-nome').value.trim();
+  const imp=parseFloat(document.getElementById('f-importo').value);
+  if(!nome||isNaN(imp)) return;
+  const maxOrd=forn.length>0?Math.max(...forn.map(f=>f.ord||0))+1:0;
+  forn.push({id:nextId++,area:document.getElementById('f-area').value,nome,importo:imp,scadenza:document.getElementById('f-scadenza').value,stato:'da_pagare',nota:document.getElementById('f-nota').value.trim(),ord:maxOrd});
+  persist();
+  document.getElementById('f-nome').value=''; document.getElementById('f-importo').value=''; document.getElementById('f-nota').value='';
+  document.getElementById('forn-form').style.display='none';
+  renderAll(); if(accessToken) syncToSheets();
+}
+function updateFornStato(id,stato){forn=forn.map(f=>f.id===id?{...f,stato}:f);persist();renderAll();if(accessToken)syncToSheets();}
+function deleteForn(id){forn=forn.filter(f=>f.id!==id);persist();renderAll();if(accessToken)syncToSheets();}
+
+// ═══════════════════════════════════
+// SORT HELPERS
+// ═══════════════════════════════════
+function sortedTasks(list){
+  const s=document.getElementById('tasks-sort')?.value||'priorita';
+  const pord={urgente:0,normale:1,bassa:2};
+  if(s==='priorita')   return [...list].sort((a,b)=>pord[a.priorita]-pord[b.priorita]);
+  if(s==='scadenza')   return [...list].sort((a,b)=>{if(!a.scadenza&&!b.scadenza)return 0;if(!a.scadenza)return 1;if(!b.scadenza)return -1;return a.scadenza.localeCompare(b.scadenza);});
+  if(s==='area')       return [...list].sort((a,b)=>a.area.localeCompare(b.area));
+  if(s==='manuale')    return [...list].sort((a,b)=>(a.ord||0)-(b.ord||0));
+  return list;
+}
+function sortedForn(list){
+  const s=document.getElementById('forn-sort')?.value||'scadenza';
+  if(s==='scadenza')   return [...list].sort((a,b)=>{if(!a.scadenza&&!b.scadenza)return 0;if(!a.scadenza)return 1;if(!b.scadenza)return -1;return a.scadenza.localeCompare(b.scadenza);});
+  if(s==='importo')    return [...list].sort((a,b)=>b.importo-a.importo);
+  if(s==='area')       return [...list].sort((a,b)=>a.area.localeCompare(b.area));
+  if(s==='manuale')    return [...list].sort((a,b)=>(a.ord||0)-(b.ord||0));
+  return list;
+}
+
+// ═══════════════════════════════════
+// RENDER OVERVIEW
+// ═══════════════════════════════════
+function renderOverview(){
+  const urg=tasks.filter(t=>!t.done&&t.priorita==='urgente').length;
+  const tot=forn.filter(f=>f.stato!=='pagato').reduce((s,f)=>s+f.importo,0);
+  const scad=forn.filter(f=>f.stato==='in_scadenza').length;
+  document.getElementById('stat-urgenti').textContent=urg;
+  document.getElementById('stat-pagamenti').textContent=eur(tot);
+  document.getElementById('stat-scadenze').textContent=scad;
+
+  const attive=tasks.filter(t=>!t.done).sort((a,b)=>({urgente:0,normale:1,bassa:2}[a.priorita]-{urgente:0,normale:1,bassa:2}[b.priorita]));
+  const banner=document.getElementById('next-task-banner');
+  if(attive.length>0&&!focusTaskId){
+    const top=attive[0]; const a=AREE[top.area];
+    banner.style.display='flex';
+    banner.innerHTML=`<div style="background:linear-gradient(135deg,#16100A,#1A1208);border:1px solid #3A2A10;border-left:3px solid #C8A96E;border-radius:10px;padding:18px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;width:100%"><div><div style="font-size:10px;letter-spacing:3px;color:#C8A96E;margin-bottom:5px;text-transform:uppercase;font-family:var(--mono)">▶ Affronta subito</div><div style="font-size:16px;color:#F0E8D5">${top.testo}</div><div style="font-size:12px;color:#666;margin-top:3px">${a.icon} ${a.label}</div></div><div style="display:flex;gap:8px"><button class="btn-ghost-colored" style="color:#C8A96E;border-color:#C8A96E55" onclick="setFocus(${top.id})">Focus →</button><button class="btn-ghost-colored" style="color:#7EB8A0;border-color:#7EB8A055" onclick="markTaskDone(${top.id})">✓ Fatto</button></div></div>`;
+  } else banner.style.display='none';
+
+  const focusEl=document.getElementById('focus-mode');
+  if(focusTaskId){
+    const ft=tasks.find(t=>t.id===focusTaskId);
+    if(ft){const a=AREE[ft.area];focusEl.style.display='block';focusEl.innerHTML=`<div id="focus-banner"><div id="focus-eyebrow">◉ Sei in Focus</div><div id="focus-area">${a.icon} ${a.label} · ${a.sub}</div><div id="focus-title">${ft.testo}</div>${ft.note?`<div id="focus-note">📝 ${ft.note}</div>`:''}<div id="focus-actions"><button class="btn-ghost-colored" style="color:#7EB8A0;border-color:#7EB8A055" onclick="markTaskDone(${ft.id})">✓ Completata</button><button class="btn-ghost" onclick="setFocus(${ft.id})">← Esci</button></div></div>`;}
+  } else focusEl.style.display='none';
+
+  document.getElementById('area-cards').innerHTML=Object.entries(AREE).map(([k,a])=>{
+    const aTask=tasks.filter(t=>!t.done&&t.area===k);
+    const aUrg=aTask.filter(t=>t.priorita==='urgente');
+    const aForn=forn.filter(f=>f.area===k&&f.stato!=='pagato');
+    const aTot=aForn.reduce((s,f)=>s+f.importo,0);
+    const topForn=aForn.sort((a,b)=>new Date(a.scadenza)-new Date(b.scadenza))[0];
+    const gg=topForn?ggScad(topForn.scadenza):null;
+    const sc=gg!==null?(gg<0?'#C87878':gg<=3?'#C8A060':'#888'):'#888';
+    return `<div class="area-card" style="border-top-color:${a.color}"><div class="area-card-header"><div><div class="area-card-title">${a.icon} ${a.label}</div><div class="area-card-sub">${a.sub}</div></div>${aUrg.length>0?badgeHtml(aUrg.length+' urgenti','#C87878'):''}</div><div class="area-card-nums"><div><div class="area-card-num-val" style="color:${a.color}">${aTask.length}</div><div class="area-card-num-lbl">attività</div></div>${aTot>0?`<div><div class="area-card-num-val" style="color:#C87878">${eur(aTot)}</div><div class="area-card-num-lbl">da pagare</div></div>`:''}</div>${aTask.length>0?`<div class="area-card-tasks">${aTask.slice(0,2).map(t=>`<div class="area-task-row"><span style="color:${PRIO_COLOR[t.priorita]};font-size:9px">●</span><span>${t.testo}</span><button class="btn-icon" style="padding:2px 6px" onclick="setFocus(${t.id})">▶</button></div>`).join('')}${aTask.length>2?`<div style="font-size:11px;color:var(--text3);margin-top:3px">+${aTask.length-2} altre</div>`:''}</div>`:''} ${topForn?`<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:8px"><div style="font-size:9px;color:var(--text3);letter-spacing:2px;margin-bottom:5px;font-family:var(--mono)">PROSSIMA SCADENZA</div><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${topForn.nome}</span><span style="font-size:12px;color:${sc};white-space:nowrap;margin-left:8px">${gg!==null?(gg<0?`scad. ${-gg}gg fa`:gg===0?'oggi':`${gg}gg`):''} · ${eur(topForn.importo)}</span></div></div>`:''}`;
+  }).join('')+'</div>'.repeat(0);
+  // close cards properly
+  document.querySelectorAll('#area-cards .area-card').forEach(c=>{ if(!c.innerHTML.endsWith('</div>')) return; });
+}
+
+// ═══════════════════════════════════
+// RENDER TASKS
+// ═══════════════════════════════════
+function renderTasks(){
+  const fb=document.getElementById('tasks-filter-bar');
+  fb.innerHTML=[['all','Tutte'],...Object.entries(AREE).map(([k,v])=>[k,v.label])].map(([k,l])=>`<button class="filter-btn ${filterArea.tasks===k?'active':''}" onclick="setFilterTasks('${k}')">${k!=='all'?`<span style="color:${AREE[k]?.color};margin-right:4px">●</span>`:''}${l}</button>`).join('');
+  areaSelectOpts('t-area');
+
+  const attive=tasks.filter(t=>!t.done&&(filterArea.tasks==='all'||t.area===filterArea.tasks));
+  const sorted=sortedTasks(attive);
+
+  const el=document.getElementById('task-list-active');
+  el.innerHTML='';
+  if(sorted.length===0){el.innerHTML='<div class="empty-state">Nessuna attività.</div>';return;}
+
+  sorted.forEach((t,i)=>{
+    const a=AREE[t.area];
+    const gg=t.scadenza?ggScad(t.scadenza):null;
+    const dim=focusTaskId&&focusTaskId!==t.id;
+    const row=document.createElement('div');
+    row.className=`task-row ${dim?'dimmed':''}`;
+    row.style.cssText=`border-left-color:${a.color};margin-bottom:7px;`;
+    row.dataset.idx=i;
+    row.innerHTML=`
+      <span class="drag-handle" title="Trascina per riordinare">⠿</span>
+      <div class="task-row-body">
+        <div class="task-row-title">${escHtml(t.testo)}</div>
+        <div class="task-row-meta">
+          <span style="font-size:11px;color:${a.color}">${a.icon} ${a.label}</span>
+          ${badgeHtml(t.priorita,PRIO_COLOR[t.priorita])}
+          ${gg!==null?`<span style="font-size:11px;color:${gg<0?'#C87878':gg<=3?'#C8A060':'#888'};font-family:var(--mono)">${gg<0?`scad. ${-gg}gg fa`:gg===0?'oggi':`${gg}gg`}</span>`:''}
+          ${t.note?`<span style="font-size:11px;color:var(--text3)">📝 ${escHtml(t.note)}</span>`:''}
+        </div>
+      </div>
+      <div class="task-actions">
+        <button class="btn-icon" onclick="setFocus(${t.id})" style="${focusTaskId===t.id?'color:#C8A96E;border-color:#C8A96E55':''}">${focusTaskId===t.id?'◉':'▶'}</button>
+        <button class="btn-icon" onclick="markTaskDone(${t.id})">✓</button>
+      </div>`;
+    // long press context menu
+    attachLongPress(row, (x,y) => showCtxMenu(x,y,[
+      {icon:'✏️', label:'Modifica',  action:`openEditTask(${t.id})`},
+      {icon:'▶',  label:'Focus',     action:`setFocus(${t.id})`},
+      {icon:'✓',  label:'Completata',action:`markTaskDone(${t.id})`},
+      'sep',
+      {icon:'🗑️', label:'Elimina',   action:`deleteTask(${t.id})`, danger:true},
+    ]));
+    initDragRow(row, i, 'task');
+    el.appendChild(row);
+  });
+
+  const done=tasks.filter(t=>t.done);
+  document.getElementById('done-count').textContent=done.length;
+  document.getElementById('task-list-done-wrap').style.display=done.length>0?'block':'none';
+  const doneEl=document.getElementById('task-list-done');
+  doneEl.style.display=showDone?'block':'none';
+  doneEl.innerHTML=done.map(t=>`
+  <div class="done-row">
+    <span style="color:#3A6A4A;font-size:13px;flex-shrink:0">✓</span>
+    <span class="done-text" title="${escHtml(t.testo)}">${escHtml(t.testo)}</span>
+    <span class="done-area">${AREE[t.area]?.icon||''} ${AREE[t.area]?.label||t.area}</span>
+    <button class="btn-restore" onclick="restoreTask(${t.id})">↩ ripristina</button>
+    <button class="btn-icon" onclick="deleteTask(${t.id})" title="Elimina definitivamente" style="color:#3A2A2A;border-color:#2A1A1A">✕</button>
+  </div>`).join('');
+}
+
+function setFilterTasks(k){filterArea.tasks=k;renderTasks();}
+
+// ═══════════════════════════════════
+// RENDER FORNITORI
+// ═══════════════════════════════════
+function renderFornitori(){
+  document.getElementById('forn-totals').innerHTML=Object.entries(AREE).map(([k,a])=>{const tot=forn.filter(f=>f.area===k&&f.stato!=='pagato').reduce((s,f)=>s+f.importo,0);return `<div style="background:var(--bg2);border:1px solid ${a.color}22;border-top:2px solid ${a.color};border-radius:8px;padding:13px 16px"><div style="font-size:11px;color:${a.color};margin-bottom:5px">${a.icon} ${a.label}</div><div style="font-size:20px;color:${tot>0?'var(--text)':'#333'}">${eur(tot)}</div></div>`;}).join('');
+
+  const fb=document.getElementById('forn-filter-bar');
+  fb.innerHTML=[['all','Tutti'],...Object.entries(AREE).map(([k,v])=>[k,v.label])].map(([k,l])=>`<button class="filter-btn ${filterArea.forn===k?'active':''}" onclick="setFilterForn('${k}')">${k!=='all'?`<span style="color:${AREE[k]?.color};margin-right:4px">●</span>`:''}${l}</button>`).join('');
+  areaSelectOpts('f-area');
+
+  const attivi=forn.filter(f=>f.stato!=='pagato'&&(filterArea.forn==='all'||f.area===filterArea.forn));
+  const sorted=sortedForn(attivi);
+  const pagati=forn.filter(f=>f.stato==='pagato'&&(filterArea.forn==='all'||f.area===filterArea.forn));
+
+  const activeEl=document.getElementById('forn-list-active');
+  activeEl.innerHTML='';
+  if(sorted.length===0){activeEl.innerHTML='<div class="empty-state" style="padding:20px 0">Nessun pagamento in sospeso.</div>';}
+  sorted.forEach((f,i)=>{
+    const a=AREE[f.area];
+    const gg=ggScad(f.scadenza);
+    const sc=gg!==null?(gg<0?'#C87878':gg<=3?'#C8A060':'#888'):'#888';
+    const row=document.createElement('div');
+    row.className='forn-row';
+    row.style.cssText=`border-left-color:${a.color};`;
+    row.dataset.idx=i;
+    row.innerHTML=`
+      <span class="drag-handle">⠿</span>
+      <div class="forn-body">
+        <div class="forn-name">${escHtml(f.nome)}</div>
+        <div class="forn-meta">
+          <span style="font-size:11px;color:${a.color}">${a.icon} ${a.label}</span>
+          ${f.nota?`<span style="font-size:11px;color:var(--text3)">📄 ${escHtml(f.nota)}</span>`:''}
+        </div>
+      </div>
+      <div class="forn-right">
+        <div class="forn-importo">${eur(f.importo)}</div>
+        ${f.scadenza?`<div class="forn-scad" style="color:${sc}">${gg!==null?(gg<0?`scad. ${-gg}gg fa`:gg===0?'oggi':`${gg}gg`):''} · ${fmtData(f.scadenza)}</div>`:''}
+      </div>
+      <select class="sel" style="width:130px;font-size:11px;padding:5px 8px" onchange="updateFornStato(${f.id},this.value)">
+        ${Object.entries(STATO_PAG).map(([k,v])=>`<option value="${k}"${f.stato===k?' selected':''}>${v.label}</option>`).join('')}
+      </select>`;
+    attachLongPress(row, (x,y) => showCtxMenu(x,y,[
+      {icon:'✏️', label:'Modifica', action:`openEditForn(${f.id})`},
+      'sep',
+      {icon:'✅', label:'Segna pagato', action:`updateFornStato(${f.id},'pagato')`},
+      {icon:'🗑️', label:'Elimina',      action:`deleteForn(${f.id})`, danger:true},
+    ]));
+    initDragRow(row, i, 'forn');
+    activeEl.appendChild(row);
+  });
+
+  document.getElementById('forn-list-done').innerHTML=pagati.length===0
+  ?'<div style="color:var(--text3);font-size:13px;padding:10px 0">Nessuno.</div>'
+  :pagati.map(f=>`
+  <div class="done-row">
+    <span style="color:#3A6A4A;font-size:13px;flex-shrink:0">✓</span>
+    <span class="done-text" title="${escHtml(f.nome)}">${escHtml(f.nome)}</span>
+    <span class="done-area">${AREE[f.area]?.icon||''} ${AREE[f.area]?.label||f.area}</span>
+    <span style="font-size:12px;color:#3A3A3A;font-family:var(--mono)">${eur(f.importo)}</span>
+    <button class="btn-restore" onclick="restoreForn(${f.id})">↩ ripristina</button>
+    <button class="btn-icon" onclick="deleteForn(${f.id})" style="color:#3A2A2A;border-color:#2A1A1A">✕</button>
+  </div>`).join('');
+}
+
+function setFilterForn(k){filterArea.forn=k;renderFornitori();}
+
+// ═══════════════════════════════════
+// RENDER NOTES
+// ═══════════════════════════════════
+function renderNotes(){
+  document.getElementById('notes-grid').innerHTML=Object.entries(AREE).map(([k,a])=>`<div class="note-card" style="border-top-color:${a.color}"><div class="note-card-title" style="color:${a.color}">${a.icon} ${a.label} <span style="color:var(--text3);font-size:11px">· ${a.sub}</span></div><textarea class="note-textarea" placeholder="Note libere per ${a.label}..." oninput="updateNote('${k}',this.value)">${escHtml(notes[k]||'')}</textarea></div>`).join('');
+}
+function updateNote(k,v){notes[k]=v;persist();}
+
+// ═══════════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════════
+const TABS_LIST=['overview','tasks','fornitori','appunti','impostazioni'];
+function switchTab(id){
+  currentTab=id;
+  TABS_LIST.forEach(t=>{document.getElementById('tab-'+t).style.display=t===id?'block':'none';});
+  document.querySelectorAll('.tab-btn').forEach((btn,i)=>btn.classList.toggle('active',TABS_LIST[i]===id));
+  renderAll();
+}
+
+function renderAll(){
+  renderOverview();
+  if(currentTab==='tasks')     renderTasks();
+  if(currentTab==='fornitori') renderFornitori();
+  if(currentTab==='appunti')   renderNotes();
+  // notif button state
+  const btn=document.getElementById('btn-notif');
+  const st=document.getElementById('notif-status');
+  if(btn&&st){
+    if(Notification.permission==='granted'){btn.style.display='none';st.textContent='✓ Notifiche attive';}
+    else if(Notification.permission==='denied'){btn.style.display='none';st.textContent='⚠ Notifiche bloccate — abilita nelle impostazioni del browser';}
+    else{btn.style.display='inline-block';st.textContent='';}
+  }
+}
+
+// ═══════════════════════════════════
+// INIT
+// ═══════════════════════════════════
+window.addEventListener('load',()=>{
+  document.getElementById('cfg-sheet-id').value=SHEET_ID;
+  document.getElementById('cfg-cal-id').value=CAL_ID;
+  areaSelectOpts('t-area'); areaSelectOpts('f-area');
+  if(typeof gapi!=='undefined') initGapi();
+  else setTimeout(()=>{if(typeof gapi!=='undefined') initGapi();},1500);
+  renderAll();
+  checkAndNotify();
+  // close edit modal on backdrop click
+  document.getElementById('edit-modal').addEventListener('click',e=>{if(e.target.id==='edit-modal')closeEdit();});
+});
+</script>
+</body>
+</html>
