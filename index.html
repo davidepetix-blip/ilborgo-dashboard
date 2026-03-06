@@ -151,6 +151,8 @@ button{cursor:pointer;font-family:var(--font);}
 /* SYNC */
 .sync-dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:5px;}
 .sync-ok{background:var(--green);} .sync-err{background:var(--red);} .sync-ing{background:var(--gold);animation:pulse 1s infinite;}
+#sync-indicator{position:fixed;bottom:16px;right:16px;background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:6px 12px;font-size:11px;font-family:var(--mono);color:var(--text3);z-index:200;display:flex;align-items:center;gap:6px;transition:opacity 0.3s;opacity:0;pointer-events:none;}
+#sync-indicator.visible{opacity:1;}
 
 /* DRAG HANDLE */
 .drag-handle{color:var(--text3);font-size:14px;cursor:grab;padding:0 4px;touch-action:none;flex-shrink:0;}
@@ -328,6 +330,9 @@ button{cursor:pointer;font-family:var(--font);}
   </div>
 </div>
 
+<!-- SYNC INDICATOR -->
+<div id="sync-indicator"><span id="sync-ind-dot" class="sync-dot sync-ok"></span><span id="sync-ind-text">salvato</span></div>
+
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://apis.google.com/js/api.js"></script>
 <script>
@@ -383,10 +388,80 @@ let forn = JSON.parse(localStorage.getItem('forn')||'null') || [
 ];
 let notes = JSON.parse(localStorage.getItem('notes')||'{}');
 
+// ── SYNC STATE ──────────────────────────────────────────────────────────────
+let syncPending = false;
+let syncTimer   = null;
+let syncInProgress = false;
+
 function persist() {
+  // Always save to localStorage as offline cache
   localStorage.setItem('tasks', JSON.stringify(tasks));
   localStorage.setItem('forn',  JSON.stringify(forn));
   localStorage.setItem('notes', JSON.stringify(notes));
+  // Debounced write to Sheets (300ms after last change)
+  if (accessToken && gapiReady) {
+    setSyncIndicator('saving');
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(() => pushToSheets(), 300);
+  }
+}
+
+function setSyncIndicator(state) {
+  const ind  = document.getElementById('sync-indicator');
+  const dot  = document.getElementById('sync-ind-dot');
+  const txt  = document.getElementById('sync-ind-text');
+  if (!ind) return;
+  ind.classList.add('visible');
+  if (state === 'saving') {
+    dot.className = 'sync-dot sync-ing';
+    txt.textContent = 'salvataggio…';
+  } else if (state === 'saved') {
+    dot.className = 'sync-dot sync-ok';
+    txt.textContent = 'salvato su Sheets';
+    setTimeout(() => ind.classList.remove('visible'), 2500);
+  } else if (state === 'error') {
+    dot.className = 'sync-dot sync-err';
+    txt.textContent = 'errore salvataggio';
+    setTimeout(() => ind.classList.remove('visible'), 4000);
+  } else if (state === 'loading') {
+    dot.className = 'sync-dot sync-ing';
+    txt.textContent = 'caricamento…';
+    ind.classList.add('visible');
+  }
+}
+
+// Silent background push to Sheets (no log spam)
+async function pushToSheets() {
+  if (!accessToken || !gapiReady || syncInProgress) return;
+  syncInProgress = true;
+  try {
+    await ensureSheetTabs();
+    const tRows=[['ID','Area','Descrizione','Priorità','Scadenza','Note','Fatto','Ordine']].concat(
+      tasks.map(t=>[t.id,AREE[t.area]?.label||t.area,t.testo,t.priorita,t.scadenza||'',t.note||'',t.done?'SI':'NO',t.ord||0])
+    );
+    await gapi.client.sheets.spreadsheets.values.update({
+      spreadsheetId:SHEET_ID, range:`${SHEET_TABS.tasks}!A1`,
+      valueInputOption:'RAW', resource:{values:tRows}
+    });
+    const fRows=[['ID','Area','Fornitore','Importo','Scadenza','Stato','Nota','Ordine']].concat(
+      forn.map(f=>[f.id,AREE[f.area]?.label||f.area,f.nome,f.importo,f.scadenza||'',f.stato,f.nota||'',f.ord||0])
+    );
+    await gapi.client.sheets.spreadsheets.values.update({
+      spreadsheetId:SHEET_ID, range:`${SHEET_TABS.forn}!A1`,
+      valueInputOption:'RAW', resource:{values:fRows}
+    });
+    const nRows=[['Area','Testo']].concat(Object.entries(notes).map(([k,v])=>[k,v]));
+    await gapi.client.sheets.spreadsheets.values.update({
+      spreadsheetId:SHEET_ID, range:`${SHEET_TABS.notes}!A1`,
+      valueInputOption:'RAW', resource:{values:nRows}
+    });
+    setSyncIndicator('saved');
+  } catch(e) {
+    setSyncIndicator('error');
+    console.error('pushToSheets error:', e);
+  } finally {
+    syncInProgress = false;
+  }
 }
 
 // ═══════════════════════════════════
@@ -518,7 +593,6 @@ function saveEdit() {
     } : f);
   }
   persist(); closeEdit(); renderAll();
-  if (accessToken) syncToSheets();
 }
 
 function closeEdit() {
@@ -670,7 +744,22 @@ function initGapi() {
       await gapi.client.init({ discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'] });
       gapiReady = true;
       const saved = localStorage.getItem('gtoken');
-      if (saved) { accessToken=saved; gapi.client.setToken({access_token:saved}); updateAuthUI(true); }
+      if (saved) {
+        accessToken = saved;
+        gapi.client.setToken({access_token: saved});
+        // Verify token validity silently
+        try {
+          const test = await gapi.client.sheets.spreadsheets.values.get({
+            spreadsheetId: SHEET_ID, range: `${SHEET_TABS.tasks}!A1:A1`
+          });
+          updateAuthUI(true); // will trigger autoLoadFromSheets
+        } catch(e) {
+          // Token expired
+          accessToken = null;
+          localStorage.removeItem('gtoken');
+          updateAuthUI(false);
+        }
+      }
     } catch(e) { gapiReady=true; }
   });
 }
@@ -721,25 +810,60 @@ function updateAuthUI(connected) {
 
 async function autoLoadFromSheets() {
   if(!accessToken || !gapiReady) return;
+  setSyncIndicator('loading');
   try {
-    // Check if sheet has data (row 2 exists)
+    await ensureSheetTabs();
+    // Check if sheet has data
     const tr = await gapi.client.sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID, range: `${SHEET_TABS.tasks}!A2:A2`
     });
     if(!tr.result.values || tr.result.values.length === 0) {
-      // Sheet is empty — first time, export local data
-      log('Prima connessione — esporto dati su Sheets…');
-      await syncToSheets();
+      // Sheet vuoto — prima volta, esporta dati locali
+      await pushToSheets();
+      setSyncIndicator('saved');
     } else {
-      // Sheet has data — import it
-      log('Caricamento dati da Sheets…');
-      await syncFromSheets();
-      log('✓ Dati aggiornati da Sheets');
+      // Sheet ha dati — importa come fonte di verità
+      await pullFromSheets();
+      setSyncIndicator('saved');
     }
   } catch(e) {
-    // Sheet may not exist yet
-    await syncToSheets();
+    console.error('autoLoad error:', e);
+    setSyncIndicator('error');
   }
+}
+
+// Pull from Sheets (read-only, updates local state)
+async function pullFromSheets() {
+  const abl = Object.fromEntries(Object.entries(AREE).map(([k,v])=>[v.label,k]));
+  const tr = await gapi.client.sheets.spreadsheets.values.get({
+    spreadsheetId:SHEET_ID, range:`${SHEET_TABS.tasks}!A2:H`
+  });
+  if(tr.result.values && tr.result.values.length > 0) {
+    tasks = tr.result.values.map(r=>({
+      id:parseInt(r[0])||Date.now(), area:abl[r[1]]||'borgo_admin',
+      testo:r[2]||'', priorita:r[3]||'normale', scadenza:r[4]||'',
+      note:r[5]||'', done:r[6]==='SI', ord:parseInt(r[7])||0
+    }));
+  }
+  const fr = await gapi.client.sheets.spreadsheets.values.get({
+    spreadsheetId:SHEET_ID, range:`${SHEET_TABS.forn}!A2:H`
+  });
+  if(fr.result.values && fr.result.values.length > 0) {
+    forn = fr.result.values.map(r=>({
+      id:parseInt(r[0])||Date.now(), area:abl[r[1]]||'hospitality',
+      nome:r[2]||'', importo:parseFloat(r[3])||0, scadenza:r[4]||'',
+      stato:r[5]||'da_pagare', nota:r[6]||'', ord:parseInt(r[7])||0
+    }));
+  }
+  const nr = await gapi.client.sheets.spreadsheets.values.get({
+    spreadsheetId:SHEET_ID, range:`${SHEET_TABS.notes}!A2:B`
+  });
+  if(nr.result.values) nr.result.values.forEach(r=>{ if(r[0]) notes[r[0]]=r[1]||''; });
+  // Update localStorage cache
+  localStorage.setItem('tasks', JSON.stringify(tasks));
+  localStorage.setItem('forn',  JSON.stringify(forn));
+  localStorage.setItem('notes', JSON.stringify(notes));
+  renderAll();
 }
 
 // ═══════════════════════════════════
@@ -757,31 +881,18 @@ async function ensureSheetTabs() {
 
 async function syncToSheets() {
   if(!accessToken||!gapiReady){log('⚠ Connetti prima Google');return;}
-  log('Esportazione su Sheets…'); await ensureSheetTabs();
-  try {
-    const tRows=[['ID','Area','Descrizione','Priorità','Scadenza','Note','Fatto','Ordine']].concat(tasks.map(t=>[t.id,AREE[t.area]?.label||t.area,t.testo,t.priorita,t.scadenza||'',t.note||'',t.done?'SI':'NO',t.ord||0]));
-    await gapi.client.sheets.spreadsheets.values.update({spreadsheetId:SHEET_ID,range:`${SHEET_TABS.tasks}!A1`,valueInputOption:'RAW',resource:{values:tRows}});
-    const fRows=[['ID','Area','Fornitore','Importo','Scadenza','Stato','Nota','Ordine']].concat(forn.map(f=>[f.id,AREE[f.area]?.label||f.area,f.nome,f.importo,f.scadenza||'',f.stato,f.nota||'',f.ord||0]));
-    await gapi.client.sheets.spreadsheets.values.update({spreadsheetId:SHEET_ID,range:`${SHEET_TABS.forn}!A1`,valueInputOption:'RAW',resource:{values:fRows}});
-    const nRows=[['Area','Testo']].concat(Object.entries(notes).map(([k,v])=>[k,v]));
-    await gapi.client.sheets.spreadsheets.values.update({spreadsheetId:SHEET_ID,range:`${SHEET_TABS.notes}!A1`,valueInputOption:'RAW',resource:{values:nRows}});
-    log('✓ Esportato su Sheets');
-  } catch(e){log('Errore Sheets: '+e.message);}
+  log('Esportazione su Sheets…');
+  await pushToSheets();
+  log('✓ Esportato su Sheets');
 }
 
 async function syncFromSheets() {
   if(!accessToken||!gapiReady){log('⚠ Connetti prima Google');return;}
   log('Importazione da Sheets…');
   try {
-    const abl=Object.fromEntries(Object.entries(AREE).map(([k,v])=>[v.label,k]));
-    const tr=await gapi.client.sheets.spreadsheets.values.get({spreadsheetId:SHEET_ID,range:`${SHEET_TABS.tasks}!A2:H`});
-    if(tr.result.values) tasks=tr.result.values.map(r=>({id:parseInt(r[0])||Date.now(),area:abl[r[1]]||'borgo_admin',testo:r[2]||'',priorita:r[3]||'normale',scadenza:r[4]||'',note:r[5]||'',done:r[6]==='SI',ord:parseInt(r[7])||0}));
-    const fr=await gapi.client.sheets.spreadsheets.values.get({spreadsheetId:SHEET_ID,range:`${SHEET_TABS.forn}!A2:H`});
-    if(fr.result.values) forn=fr.result.values.map(r=>({id:parseInt(r[0])||Date.now(),area:abl[r[1]]||'hospitality',nome:r[2]||'',importo:parseFloat(r[3])||0,scadenza:r[4]||'',stato:r[5]||'da_pagare',nota:r[6]||'',ord:parseInt(r[7])||0}));
-    const nr=await gapi.client.sheets.spreadsheets.values.get({spreadsheetId:SHEET_ID,range:`${SHEET_TABS.notes}!A2:B`});
-    if(nr.result.values) nr.result.values.forEach(r=>{if(r[0]) notes[r[0]]=r[1]||'';});
-    persist(); renderAll(); log('✓ Importato da Sheets');
-  } catch(e){log('Errore importazione: '+e.message);}
+    await pullFromSheets();
+    log('✓ Importato da Sheets');
+  } catch(e){ log('Errore importazione: '+e.message); }
 }
 
 // ═══════════════════════════════════
@@ -941,12 +1052,12 @@ function saveTask(){
   persist();
   document.getElementById('t-testo').value=''; document.getElementById('t-note').value=''; document.getElementById('t-scadenza').value='';
   document.getElementById('task-form').style.display='none';
-  renderAll(); if(accessToken) syncToSheets();
+  renderAll();
 }
-function markTaskDone(id){tasks=tasks.map(t=>t.id===id?{...t,done:true}:t);if(focusTaskId===id)focusTaskId=null;persist();renderAll();if(accessToken)syncToSheets();}
-function deleteTask(id){tasks=tasks.filter(t=>t.id!==id);if(focusTaskId===id)focusTaskId=null;persist();renderAll();if(accessToken)syncToSheets();}
-function restoreTask(id){tasks=tasks.map(t=>t.id===id?{...t,done:false}:t);persist();renderAll();if(accessToken)syncToSheets();}
-function restoreForn(id){forn=forn.map(f=>f.id===id?{...f,stato:'da_pagare'}:f);persist();renderAll();if(accessToken)syncToSheets();}
+function markTaskDone(id){tasks=tasks.map(t=>t.id===id?{...t,done:true}:t);if(focusTaskId===id)focusTaskId=null;persist();renderAll();}
+function deleteTask(id){tasks=tasks.filter(t=>t.id!==id);if(focusTaskId===id)focusTaskId=null;persist();renderAll();}
+function restoreTask(id){tasks=tasks.map(t=>t.id===id?{...t,done:false}:t);persist();renderAll();}
+function restoreForn(id){forn=forn.map(f=>f.id===id?{...f,stato:'da_pagare'}:f);persist();renderAll();}
 function setFocus(id){focusTaskId=focusTaskId===id?null:id;renderAll();}
 
 // ═══════════════════════════════════
@@ -961,10 +1072,10 @@ function saveForn(){
   persist();
   document.getElementById('f-nome').value=''; document.getElementById('f-importo').value=''; document.getElementById('f-nota').value='';
   document.getElementById('forn-form').style.display='none';
-  renderAll(); if(accessToken) syncToSheets();
+  renderAll();
 }
-function updateFornStato(id,stato){forn=forn.map(f=>f.id===id?{...f,stato}:f);persist();renderAll();if(accessToken)syncToSheets();}
-function deleteForn(id){forn=forn.filter(f=>f.id!==id);persist();renderAll();if(accessToken)syncToSheets();}
+function updateFornStato(id,stato){forn=forn.map(f=>f.id===id?{...f,stato}:f);persist();renderAll();}
+function deleteForn(id){forn=forn.filter(f=>f.id!==id);persist();renderAll();}
 
 // ═══════════════════════════════════
 // SORT HELPERS
