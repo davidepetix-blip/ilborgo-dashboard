@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<title>Affitti · Montedoro</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:     #08090C;
+  --bg2:    #0D0F14;
+  --bg3:    #12141A;
+  --bg4:    #181B23;
+  --border: #1C1F28;
+  --border2:#252830;
+  --text:   #C8C4BC;
+  --text2:  #6B6860;
+  --text3:  #32342E;
+  --cream:  #E8E0D0;
+  --gold:   #B8962A;
+  --gold2:  #D4AE4E;
+  --green:  #4A8C6E;
+  --green2: #6AAF8E;
+  --red:    #8C4A4A;
+  --red2:   #C07070;
+  --blue:   #4A6A8C;
+  --font:   'Cormorant Garamond', Georgia, serif;
+  --mono:   'DM Mono', monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:16px;-webkit-font-smoothing:antialiased;}
+::-webkit-scrollbar{width:3px;} ::-webkit-scrollbar-thumb{background:var(--border2);}
+input,select,textarea,button{font-family:var(--font);}
+input::placeholder,textarea::placeholder{color:var(--text3);}
+select option{background:var(--bg3);}
+button{cursor:pointer;}
+
+/* ── LAYOUT ── */
+#app{display:flex;flex-direction:column;min-height:100vh;}
+
+/* ── HEADER ── */
+#header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;position:sticky;top:0;z-index:100;}
+#header-inner{display:flex;align-items:stretch;justify-content:space-between;gap:0;}
+#header-left{padding:16px 0;display:flex;flex-direction:column;justify-content:center;}
+#header-eyebrow{font-size:9px;letter-spacing:4px;color:var(--text3);text-transform:uppercase;font-family:var(--mono);margin-bottom:3px;}
+#header-title{font-size:22px;font-weight:300;color:var(--cream);letter-spacing:0.5px;}
+#header-title em{font-style:italic;color:var(--gold2);}
+#header-stats{display:flex;align-items:stretch;border-left:1px solid var(--border);margin-left:20px;}
+.hstat{padding:0 20px;display:flex;flex-direction:column;justify-content:center;text-align:center;border-right:1px solid var(--border);}
+.hstat-val{font-size:20px;font-weight:300;line-height:1;margin-bottom:2px;}
+.hstat-lbl{font-size:8px;letter-spacing:3px;color:var(--text3);text-transform:uppercase;font-family:var(--mono);}
+#tabs{display:flex;gap:0;overflow-x:auto;scrollbar-width:none;border-top:1px solid var(--border);}
+#tabs::-webkit-scrollbar{display:none;}
+.tab-btn{padding:10px 18px;font-size:11px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text3);white-space:nowrap;letter-spacing:1px;text-transform:uppercase;font-family:var(--mono);transition:all 0.2s;}
+.tab-btn.active{color:var(--gold2);border-bottom-color:var(--gold2);}
+
+/* ── MAIN ── */
+#main{flex:1;padding:28px 24px;max-width:1000px;margin:0 auto;width:100%;}
+
+/* ── SECTION TITLE ── */
+.sec{font-size:9px;letter-spacing:4px;color:var(--text3);text-transform:uppercase;font-family:var(--mono);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+
+/* ── APPARTAMENTI GRID ── */
+.apt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:32px;}
+.apt-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;border-top:2px solid var(--gold);position:relative;overflow:hidden;}
+.apt-card::before{content:'';position:absolute;top:0;right:0;width:60px;height:60px;background:radial-gradient(circle at top right,var(--gold)08,transparent 70%);}
+.apt-type{font-size:8px;letter-spacing:3px;color:var(--text3);text-transform:uppercase;font-family:var(--mono);margin-bottom:6px;}
+.apt-name{font-size:17px;font-weight:400;color:var(--cream);margin-bottom:2px;}
+.apt-addr{font-size:12px;color:var(--text2);margin-bottom:14px;font-style:italic;}
+.apt-nums{display:flex;gap:16px;margin-bottom:14px;}
+.apt-num-val{font-size:20px;font-weight:300;}
+.apt-num-lbl{font-size:8px;color:var(--text3);letter-spacing:2px;text-transform:uppercase;font-family:var(--mono);}
+.apt-footer{display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid var(--border);}
+.apt-tenant{font-size:12px;color:var(--text2);font-style:italic;}
+.apt-actions{display:flex;gap:6px;}
+
+/* ── CARDS INCASSI MENSILI ── */
+.month-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin-bottom:28px;}
+.month-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.month-card-header{padding:14px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);}
+.month-card-title{font-size:14px;color:var(--cream);}
+.month-card-sub{font-size:10px;color:var(--text2);font-family:var(--mono);}
+.incasso-row{display:flex;align-items:center;gap:10px;padding:11px 18px;border-bottom:1px solid var(--border);}
+.incasso-row:last-child{border-bottom:none;}
+.incasso-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.incasso-name{font-size:13px;color:var(--text);flex:1;}
+.incasso-atteso{font-size:12px;color:var(--text3);font-family:var(--mono);}
+.incasso-stato{font-size:11px;font-family:var(--mono);}
+
+/* ── PRENOTAZIONI BREVI ── */
+.prenot-list{display:flex;flex-direction:column;gap:8px;margin-bottom:28px;}
+.prenot-row{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--blue);border-radius:8px;padding:14px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.prenot-dates{font-family:var(--mono);font-size:11px;color:var(--text2);white-space:nowrap;}
+.prenot-guest{font-size:14px;color:var(--cream);flex:1;min-width:120px;}
+.prenot-apt{font-size:11px;color:var(--text2);font-style:italic;}
+.prenot-importo{font-size:16px;font-weight:300;color:var(--green2);white-space:nowrap;}
+.prenot-tag{font-size:9px;letter-spacing:2px;color:var(--text3);font-family:var(--mono);border:1px solid var(--border2);padding:2px 8px;border-radius:10px;}
+
+/* ── RIEPILOGO FINANZIARIO ── */
+.fin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:28px;}
+.fin-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px 20px;}
+.fin-val{font-size:26px;font-weight:300;line-height:1;margin-bottom:4px;}
+.fin-lbl{font-size:9px;letter-spacing:3px;color:var(--text3);text-transform:uppercase;font-family:var(--mono);}
+.fin-sub{font-size:11px;color:var(--text2);margin-top:6px;font-style:italic;}
+.progress-bar{height:3px;background:var(--border);border-radius:2px;margin-top:10px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:2px;transition:width 0.5s ease;}
+
+/* ── FORM ── */
+.form-box{background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:22px;margin-bottom:20px;animation:fadeIn 0.2s ease;}
+.form-grid{display:grid;gap:12px;}
+.form-2{grid-template-columns:1fr 1fr;}
+.form-3{grid-template-columns:1fr 1fr 1fr;}
+@media(max-width:560px){.form-2,.form-3{grid-template-columns:1fr;}.apt-grid{grid-template-columns:1fr;}.month-grid{grid-template-columns:1fr;}.fin-grid{grid-template-columns:1fr 1fr;}}
+.form-lbl{font-size:9px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;font-family:var(--mono);margin-bottom:5px;}
+.inp{width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:9px 12px;color:var(--text);font-size:14px;outline:none;transition:border-color 0.15s;}
+.inp:focus{border-color:var(--gold);}
+.sel{width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:9px 12px;color:var(--text);font-size:13px;outline:none;}
+
+/* ── BUTTONS ── */
+.btn-gold{background:var(--gold);color:#08090C;border:none;border-radius:6px;padding:9px 22px;font-size:13px;letter-spacing:0.3px;}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--text2);border-radius:6px;padding:7px 14px;font-size:12px;transition:all 0.15s;}
+.btn-ghost:hover{border-color:var(--gold);color:var(--gold);}
+.btn-icon{background:transparent;border:1px solid var(--border);color:var(--text3);border-radius:5px;padding:4px 8px;font-size:11px;}
+.btn-add{background:var(--gold);color:#08090C;border:none;border-radius:6px;padding:7px 14px;font-size:11px;letter-spacing:0.5px;font-family:var(--mono);}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:9px;letter-spacing:1px;border:1px solid;font-family:var(--mono);}
+
+/* ── EMPTY ── */
+.empty{text-align:center;color:var(--text3);padding:40px;font-size:15px;font-style:italic;}
+
+/* ── CONTEXT MENU ── */
+#ctx-menu{position:fixed;background:var(--bg4);border:1px solid var(--border2);border-radius:10px;padding:6px;z-index:999;min-width:180px;box-shadow:0 8px 32px rgba(0,0,0,0.7);animation:fadeIn 0.15s ease;}
+#ctx-menu button{display:block;width:100%;text-align:left;background:transparent;border:none;color:var(--text);padding:10px 14px;font-size:13px;font-family:var(--font);border-radius:6px;}
+#ctx-menu button:hover{background:var(--border);}
+#ctx-menu .ctx-sep{height:1px;background:var(--border);margin:4px 0;}
+#ctx-menu .ctx-danger{color:var(--red2);}
+
+/* ── EDIT MODAL ── */
+#edit-modal{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn 0.2s ease;}
+#edit-box{background:var(--bg3);border:1px solid var(--border2);border-radius:14px;padding:26px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;}
+#edit-ttl{font-size:10px;letter-spacing:3px;color:var(--gold2);text-transform:uppercase;font-family:var(--mono);margin-bottom:20px;}
+
+/* ── SYNC ── */
+#sync-indicator{position:fixed;bottom:16px;right:16px;background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:6px 12px;font-size:10px;font-family:var(--mono);color:var(--text3);z-index:200;display:flex;align-items:center;gap:6px;opacity:0;transition:opacity 0.3s;pointer-events:none;}
+#sync-indicator.visible{opacity:1;}
+.sync-dot{width:5px;height:5px;border-radius:50%;display:inline-block;}
+.s-ok{background:var(--green2);} .s-err{background:var(--red2);} .s-ing{background:var(--gold);animation:pulse 1s infinite;}
+.sync-row{display:flex;gap:8px;flex-wrap:wrap;}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(-5px);}to{opacity:1;transform:translateY(0);}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <div id="header-inner">
+      <div id="header-left">
+        <div id="header-eyebrow">Montedoro · Gestione</div>
+        <div id="header-title"><em>Affitti</em> — Il Borgo srl</div>
+      </div>
+      <div id="header-stats">
+        <div class="hstat"><div class="hstat-val" id="st-apt" style="color:var(--gold2)">—</div><div class="hstat-lbl">Apt.</div></div>
+        <div class="hstat"><div class="hstat-val" id="st-atteso" style="color:var(--cream)">—</div><div class="hstat-lbl">Atteso/mese</div></div>
+        <div class="hstat"><div class="hstat-val" id="st-incassato" style="color:var(--green2)">—</div><div class="hstat-lbl">Incassato</div></div>
+        <div class="hstat"><div class="hstat-val" id="st-delta" style="color:var(--red2)">—</div><div class="hstat-lbl">Residuo</div></div>
+      </div>
+    </div>
+    <div id="tabs">
+      <button class="tab-btn active" onclick="switchTab('panoramica')">Panoramica</button>
+      <button class="tab-btn" onclick="switchTab('lunghi')">Affitti Lunghi</button>
+      <button class="tab-btn" onclick="switchTab('brevi')">Affitti Brevi</button>
+      <button class="tab-btn" onclick="switchTab('incassi')">Incassi</button>
+      <button class="tab-btn" onclick="switchTab('sync')">⚙ Sync</button>
+    </div>
+  </div>
+
+  <div id="main">
+
+    <!-- PANORAMICA -->
+    <div id="tab-panoramica">
+      <div class="fin-grid" id="fin-cards"></div>
+      <div class="sec">Situazione incassi — mese corrente <span id="mese-label"></span></div>
+      <div id="panoramica-incassi"></div>
+      <div class="sec" style="margin-top:24px">Prossime scadenze</div>
+      <div id="panoramica-scadenze"></div>
+    </div>
+
+    <!-- AFFITTI LUNGHI -->
+    <div id="tab-lunghi" style="display:none">
+      <div class="sec">Contratti attivi
+        <button class="btn-add" onclick="toggleForm('form-lungo')">+ Contratto</button>
+      </div>
+      <div id="form-lungo" class="form-box" style="display:none">
+        <div class="form-grid form-3" style="margin-bottom:12px">
+          <div style="grid-column:1/-1"><div class="form-lbl">Nome appartamento / indirizzo</div><input class="inp" id="l-nome" placeholder="Es. Via Roma 4 — Piano 2"/></div>
+          <div><div class="form-lbl">Inquilino</div><input class="inp" id="l-inquilino" placeholder="Nome cognome"/></div>
+          <div><div class="form-lbl">Canone mensile €</div><input class="inp" type="number" id="l-canone" placeholder="0"/></div>
+          <div><div class="form-lbl">Scadenza contratto</div><input class="inp" type="date" id="l-scadenza"/></div>
+          <div><div class="form-lbl">Caparra €</div><input class="inp" type="number" id="l-caparra" placeholder="0"/></div>
+          <div><div class="form-lbl">Giorno pagamento</div><input class="inp" type="number" id="l-giorno" placeholder="Es. 5" min="1" max="28"/></div>
+          <div style="grid-column:1/-1"><div class="form-lbl">Note</div><input class="inp" id="l-note" placeholder="Note libere..."/></div>
+        </div>
+        <button class="btn-gold" onclick="saveContratto()">Salva contratto</button>
+        <button class="btn-ghost" style="margin-left:8px" onclick="toggleForm('form-lungo')">Annulla</button>
+      </div>
+      <div class="apt-grid" id="contratti-list"></div>
+    </div>
+
+    <!-- AFFITTI BREVI -->
+    <div id="tab-brevi" style="display:none">
+      <div class="sec">Prenotazioni
+        <button class="btn-add" onclick="toggleForm('form-breve')">+ Prenotazione</button>
+      </div>
+      <div id="form-breve" class="form-box" style="display:none">
+        <div class="form-grid form-3" style="margin-bottom:12px">
+          <div><div class="form-lbl">Appartamento</div><select class="sel" id="b-apt"></select></div>
+          <div><div class="form-lbl">Ospite</div><input class="inp" id="b-ospite" placeholder="Nome ospite"/></div>
+          <div><div class="form-lbl">Importo €</div><input class="inp" type="number" id="b-importo" placeholder="0"/></div>
+          <div><div class="form-lbl">Check-in</div><input class="inp" type="date" id="b-checkin"/></div>
+          <div><div class="form-lbl">Check-out</div><input class="inp" type="date" id="b-checkout"/></div>
+          <div><div class="form-lbl">Note</div><input class="inp" id="b-note" placeholder="Es. pulizie incluse"/></div>
+        </div>
+        <button class="btn-gold" onclick="savePrenotazione()">Salva prenotazione</button>
+        <button class="btn-ghost" style="margin-left:8px" onclick="toggleForm('form-breve')">Annulla</button>
+      </div>
+      <div class="prenot-list" id="prenot-list"></div>
+    </div>
+
+    <!-- INCASSI -->
+    <div id="tab-incassi" style="display:none">
+      <div class="sec">Registra incasso
+      </div>
+      <div class="form-box">
+        <div class="form-grid form-3" style="margin-bottom:12px">
+          <div><div class="form-lbl">Appartamento / fonte</div><select class="sel" id="i-apt"></select></div>
+          <div><div class="form-lbl">Importo €</div><input class="inp" type="number" id="i-importo" placeholder="0"/></div>
+          <div><div class="form-lbl">Data</div><input class="inp" type="date" id="i-data"/></div>
+          <div style="grid-column:1/-1"><div class="form-lbl">Note (es. mese di riferimento)</div><input class="inp" id="i-note" placeholder="Es. Canone marzo 2026"/></div>
+        </div>
+        <button class="btn-gold" onclick="saveIncasso()">Registra incasso</button>
+      </div>
+      <div class="sec" style="margin-top:8px">Storico incassi</div>
+      <div id="incassi-list"></div>
+    </div>
+
+    <!-- SYNC -->
+    <div id="tab-sync" style="display:none">
+      <div class="sec">Connessione Google</div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:22px;margin-bottom:20px">
+        <div id="google-status" style="display:flex;align-items:center;gap:8px;margin-bottom:16px;font-size:13px;color:var(--text2)">
+          <span class="sync-dot s-err"></span> Non connesso
+        </div>
+        <button class="btn-gold" id="btn-signin" onclick="signIn()">Accedi con Google</button>
+        <button class="btn-ghost" id="btn-signout" onclick="signOut()" style="display:none;margin-left:8px">Disconnetti</button>
+      </div>
+      <div class="sec">Configurazione Sheets</div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:22px;margin-bottom:20px">
+        <div style="margin-bottom:12px"><div class="form-lbl">Google Sheet ID</div><input class="inp" id="cfg-sheet-id" placeholder="ID del foglio Google"/></div>
+        <button class="btn-gold" onclick="saveConfig()">Salva</button>
+      </div>
+      <div class="sec">Sincronizzazione</div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:22px">
+        <div class="sync-row">
+          <button class="btn-ghost" onclick="pullFromSheets()">↓ Importa da Sheets</button>
+          <button class="btn-ghost" onclick="pushToSheets()">↑ Esporta su Sheets</button>
+        </div>
+        <div id="sync-log" style="margin-top:12px;font-size:11px;color:var(--text3);font-family:var(--mono)"></div>
+      </div>
+      <div class="sec" style="margin-top:20px">Torna alla dashboard</div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px">
+        <a href="https://ilborgo-dashboard.davide-petix.workers.dev" style="color:var(--gold2);font-size:14px;text-decoration:none">← Dashboard Il Borgo</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- CTX MENU -->
+<div id="ctx-menu" style="display:none"></div>
+
+<!-- EDIT MODAL -->
+<div id="edit-modal" style="display:none">
+  <div id="edit-box">
+    <div id="edit-ttl">Modifica</div>
+    <div id="edit-content"></div>
+    <div style="display:flex;gap:8px;margin-top:18px">
+      <button class="btn-gold" onclick="saveEdit()">Salva</button>
+      <button class="btn-ghost" onclick="closeEdit()">Annulla</button>
+    </div>
+  </div>
+</div>
+
+<!-- SYNC INDICATOR -->
+<div id="sync-indicator"><span id="s-dot" class="sync-dot s-ok"></span><span id="s-txt">salvato</span></div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js"></script>
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────────────────
+const CLIENT_ID = '850622821617-7l6ll27pfs5hkfng3savskud4pqjiqcn.apps.googleusercontent.com';
+const SCOPES    = 'https://www.googleapis.com/auth/spreadsheets';
+const TABS = { contratti:'Contratti', prenotazioni:'Prenotazioni', incassi:'Incassi' };
+let SHEET_ID = localStorage.getItem('aff_sheet_id') || '';
+let accessToken = null;
+let gapiReady   = false;
+let syncTimer   = null;
+let syncBusy    = false;
+let editTarget  = null;
+let currentTab  = 'panoramica';
+
+// ── DATA ────────────────────────────────────────────────────────────────────
+let contratti    = JSON.parse(localStorage.getItem('aff_contratti')   || '[]');
+let prenotazioni = JSON.parse(localStorage.getItem('aff_prenotazioni')|| '[]');
+let incassi      = JSON.parse(localStorage.getItem('aff_incassi')     || '[]');
+
+// ── HELPERS ─────────────────────────────────────────────────────────────────
+function oggi(){ return new Date().toISOString().split('T')[0]; }
+function fmtD(d){ if(!d) return '—'; const [y,m,g]=d.split('-'); return `${g}/${m}/${y}`; }
+function eur(n){ return '€'+Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:0}); }
+function ggScad(d){ if(!d) return null; return Math.ceil((new Date(d)-new Date(oggi()))/86400000); }
+function meseCorrente(){ const n=new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`; }
+function toggleForm(id){ const el=document.getElementById(id); el.style.display=el.style.display==='none'?'block':'none'; }
+function escH(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function genId(){ return Date.now() + Math.floor(Math.random()*1000); }
+function mesiLabel(){ const m=['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic']; const n=new Date(); return `${m[n.getMonth()]} ${n.getFullYear()}`; }
+
+// ── PERSIST ──────────────────────────────────────────────────────────────────
+function persist(){
+  localStorage.setItem('aff_contratti',    JSON.stringify(contratti));
+  localStorage.setItem('aff_prenotazioni', JSON.stringify(prenotazioni));
+  localStorage.setItem('aff_incassi',      JSON.stringify(incassi));
+  if(accessToken && gapiReady && SHEET_ID){
+    setSyncInd('saving');
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(()=>pushToSheets(), 400);
+  }
+}
+
+function setSyncInd(state){
+  const ind=document.getElementById('sync-indicator');
+  const dot=document.getElementById('s-dot');
+  const txt=document.getElementById('s-txt');
+  if(!ind) return;
+  ind.classList.add('visible');
+  if(state==='saving'){dot.className='sync-dot s-ing';txt.textContent='salvataggio…';}
+  else if(state==='saved'){dot.className='sync-dot s-ok';txt.textContent='salvato';setTimeout(()=>ind.classList.remove('visible'),2500);}
+  else if(state==='error'){dot.className='sync-dot s-err';txt.textContent='errore';setTimeout(()=>ind.classList.remove('visible'),4000);}
+  else if(state==='loading'){dot.className='sync-dot s-ing';txt.textContent='caricamento…';}
+}
+
+function log(msg){ const el=document.getElementById('sync-log'); if(el){el.textContent=msg;setTimeout(()=>{if(el.textContent===msg)el.textContent='';},5000);} }
+
+// ── SYNC ─────────────────────────────────────────────────────────────────────
+async function ensureTabs(){
+  try{
+    const res=await gapi.client.sheets.spreadsheets.get({spreadsheetId:SHEET_ID});
+    const ex=res.result.sheets.map(s=>s.properties.title);
+    const needed=Object.values(TABS).filter(t=>!ex.includes(t));
+    if(!needed.length) return;
+    await gapi.client.sheets.spreadsheets.batchUpdate({spreadsheetId:SHEET_ID,resource:{requests:needed.map(t=>({addSheet:{properties:{title:t}}}))}});
+  }catch(e){console.error('ensureTabs',e);}
+}
+
+async function pushToSheets(){
+  if(!accessToken||!gapiReady||!SHEET_ID||syncBusy) return;
+  syncBusy=true;
+  try{
+    await ensureTabs();
+    const cRows=[['ID','Nome','Indirizzo','Inquilino','Canone','Scadenza','Caparra','GiornoPag','Note']].concat(
+      contratti.map(c=>[c.id,c.nome,c.indirizzo||'',c.inquilino,c.canone,c.scadenza||'',c.caparra||0,c.giorno||'',c.note||''])
+    );
+    await gapi.client.sheets.spreadsheets.values.update({spreadsheetId:SHEET_ID,range:`${TABS.contratti}!A1`,valueInputOption:'RAW',resource:{values:cRows}});
+    const pRows=[['ID','AptID','AptNome','Ospite','Importo','CheckIn','CheckOut','Note']].concat(
+      prenotazioni.map(p=>[p.id,p.aptId||'',p.aptNome||'',p.ospite,p.importo,p.checkin||'',p.checkout||'',p.note||''])
+    );
+    await gapi.client.sheets.spreadsheets.values.update({spreadsheetId:SHEET_ID,range:`${TABS.prenotazioni}!A1`,valueInputOption:'RAW',resource:{values:pRows}});
+    const iRows=[['ID','AptID','AptNome','Importo','Data','Note']].concat(
+      incassi.map(i=>[i.id,i.aptId||'',i.aptNome||'',i.importo,i.data||'',i.note||''])
+    );
+    await gapi.client.sheets.spreadsheets.values.update({spreadsheetId:SHEET_ID,range:`${TABS.incassi}!A1`,valueInputOption:'RAW',resource:{values:iRows}});
+    setSyncInd('saved');
+  }catch(e){ setSyncInd('error'); console.error('pushToSheets',e); }
+  finally{ syncBusy=false; }
+}
+
+async function pullFromSheets(){
+  if(!accessToken||!gapiReady||!SHEET_ID){log('⚠ Connetti Google e configura Sheet ID');return;}
+  setSyncInd('loading');
+  try{
+    await ensureTabs();
+    const cr=await gapi.client.sheets.spreadsheets.values.get({spreadsheetId:SHEET_ID,range:`${TABS.contratti}!A2:I`});
+    if(cr.result.values&&cr.result.values.length){
+      contratti=cr.result.values.map(r=>({id:r[0]||genId(),nome:r[1]||'',indirizzo:r[2]||'',inquilino:r[3]||'',canone:parseFloat(r[4])||0,scadenza:r[5]||'',caparra:parseFloat(r[6])||0,giorno:r[7]||'',note:r[8]||''}));
+    }
+    const pr=await gapi.client.sheets.spreadsheets.values.get({spreadsheetId:SHEET_ID,range:`${TABS.prenotazioni}!A2:H`});
+    if(pr.result.values&&pr.result.values.length){
+      prenotazioni=pr.result.values.map(r=>({id:r[0]||genId(),aptId:r[1]||'',aptNome:r[2]||'',ospite:r[3]||'',importo:parseFloat(r[4])||0,checkin:r[5]||'',checkout:r[6]||'',note:r[7]||''}));
+    }
+    const ir=await gapi.client.sheets.spreadsheets.values.get({spreadsheetId:SHEET_ID,range:`${TABS.incassi}!A2:F`});
+    if(ir.result.values&&ir.result.values.length){
+      incassi=ir.result.values.map(r=>({id:r[0]||genId(),aptId:r[1]||'',aptNome:r[2]||'',importo:parseFloat(r[3])||0,data:r[4]||'',note:r[5]||''}));
+    }
+    localStorage.setItem('aff_contratti',    JSON.stringify(contratti));
+    localStorage.setItem('aff_prenotazioni', JSON.stringify(prenotazioni));
+    localStorage.setItem('aff_incassi',      JSON.stringify(incassi));
+    renderAll();
+    setSyncInd('saved');
+    log('✓ Importato da Sheets');
+  }catch(e){ setSyncInd('error'); log('Errore: '+e.message); }
+}
+
+// ── GOOGLE AUTH ──────────────────────────────────────────────────────────────
+function initGapi(){
+  gapi.load('client', async ()=>{
+    try{
+      await gapi.client.init({discoveryDocs:['https://sheets.googleapis.com/$discovery/rest?version=v4']});
+      gapiReady=true;
+      const saved=localStorage.getItem('aff_gtoken');
+      if(saved){
+        accessToken=saved; gapi.client.setToken({access_token:saved});
+        try{
+          if(SHEET_ID) await gapi.client.sheets.spreadsheets.values.get({spreadsheetId:SHEET_ID,range:`${TABS.contratti}!A1:A1`});
+          updateAuthUI(true);
+          setTimeout(()=>autoLoad(),600);
+        }catch(e){ accessToken=null; localStorage.removeItem('aff_gtoken'); updateAuthUI(false); }
+      }
+    }catch(e){ gapiReady=true; }
+  });
+}
+
+async function autoLoad(){
+  if(!accessToken||!gapiReady||!SHEET_ID) return;
+  try{
+    const r=await gapi.client.sheets.spreadsheets.values.get({spreadsheetId:SHEET_ID,range:`${TABS.contratti}!A2:A2`});
+    if(!r.result.values||!r.result.values.length) await pushToSheets();
+    else await pullFromSheets();
+  }catch(e){ await pushToSheets(); }
+}
+
+function signIn(){
+  const client=google.accounts.oauth2.initTokenClient({
+    client_id:CLIENT_ID, scope:SCOPES, prompt:'consent',
+    callback:(resp)=>{
+      if(resp.error){log('Errore: '+resp.error);return;}
+      accessToken=resp.access_token;
+      if(gapiReady) gapi.client.setToken({access_token:accessToken});
+      localStorage.setItem('aff_gtoken',accessToken);
+      updateAuthUI(true);
+      setTimeout(()=>autoLoad(),600);
+    }
+  });
+  client.requestAccessToken();
+}
+
+function signOut(){
+  try{google.accounts.oauth2.revoke(accessToken,()=>{});}catch(e){}
+  accessToken=null; localStorage.removeItem('aff_gtoken');
+  if(gapiReady) gapi.client.setToken(null);
+  updateAuthUI(false);
+}
+
+function updateAuthUI(connected){
+  const dot=document.querySelector('#google-status .sync-dot');
+  const txt=document.getElementById('google-status');
+  const btnIn=document.getElementById('btn-signin');
+  const btnOut=document.getElementById('btn-signout');
+  if(connected){
+    dot.className='sync-dot s-ok';
+    txt.innerHTML='<span class="sync-dot s-ok"></span> Connesso a Google';
+    btnIn.style.display='none'; btnOut.style.display='inline-block';
+  }else{
+    dot.className='sync-dot s-err';
+    txt.innerHTML='<span class="sync-dot s-err"></span> Non connesso';
+    btnIn.style.display='inline-block'; btnOut.style.display='none';
+  }
+}
+
+function saveConfig(){
+  SHEET_ID=document.getElementById('cfg-sheet-id').value.trim();
+  localStorage.setItem('aff_sheet_id',SHEET_ID);
+  log('✓ Sheet ID salvato');
+}
+
+// ── CONTEXT MENU ─────────────────────────────────────────────────────────────
+let ctxTimer=null;
+function attachLP(el,cb){
+  el.addEventListener('touchstart',e=>{ctxTimer=setTimeout(()=>{e.preventDefault();cb(e.touches[0].clientX,e.touches[0].clientY);},600);},{passive:true});
+  el.addEventListener('touchend',()=>clearTimeout(ctxTimer));
+  el.addEventListener('touchmove',()=>clearTimeout(ctxTimer));
+  el.addEventListener('contextmenu',e=>{e.preventDefault();cb(e.clientX,e.clientY);});
+}
+function showCtx(x,y,items){
+  const m=document.getElementById('ctx-menu');
+  m.innerHTML=items.map(i=>i==='sep'?'<div class="ctx-sep"></div>':`<button class="${i.danger?'ctx-danger':''}" onclick="closeCtx();${i.action}">${i.icon||''} ${i.label}</button>`).join('');
+  m.style.display='block';
+  m.style.left=Math.min(x,window.innerWidth-200)+'px';
+  m.style.top=Math.min(y,window.innerHeight-items.length*44)+'px';
+  setTimeout(()=>document.addEventListener('click',closeCtx,{once:true}),50);
+}
+function closeCtx(){ document.getElementById('ctx-menu').style.display='none'; }
+
+// ── EDIT MODAL ───────────────────────────────────────────────────────────────
+function openEditContratto(id){
+  const c=contratti.find(x=>x.id==id); if(!c) return;
+  editTarget={type:'contratto',id};
+  document.getElementById('edit-ttl').textContent='Modifica Contratto';
+  document.getElementById('edit-content').innerHTML=`
+    <div class="form-grid form-2" style="gap:12px">
+      <div style="grid-column:1/-1"><div class="form-lbl">Nome / indirizzo</div><input class="inp" id="ed-nome" value="${escH(c.nome)}"/></div>
+      <div><div class="form-lbl">Inquilino</div><input class="inp" id="ed-inquilino" value="${escH(c.inquilino)}"/></div>
+      <div><div class="form-lbl">Canone €</div><input class="inp" type="number" id="ed-canone" value="${c.canone}"/></div>
+      <div><div class="form-lbl">Scadenza contratto</div><input class="inp" type="date" id="ed-scadenza" value="${c.scadenza||''}"/></div>
+      <div><div class="form-lbl">Caparra €</div><input class="inp" type="number" id="ed-caparra" value="${c.caparra||0}"/></div>
+      <div><div class="form-lbl">Giorno pagamento</div><input class="inp" type="number" id="ed-giorno" value="${c.giorno||''}"/></div>
+      <div style="grid-column:1/-1"><div class="form-lbl">Note</div><input class="inp" id="ed-note" value="${escH(c.note||'')}"/></div>
+    </div>`;
+  document.getElementById('edit-modal').style.display='flex';
+}
+
+function openEditPrenotazione(id){
+  const p=prenotazioni.find(x=>x.id==id); if(!p) return;
+  editTarget={type:'prenotazione',id};
+  document.getElementById('edit-ttl').textContent='Modifica Prenotazione';
+  const aptOpts=contratti.map(c=>`<option value="${c.id}"${p.aptId==c.id?' selected':''}>${escH(c.nome)}</option>`).join('');
+  document.getElementById('edit-content').innerHTML=`
+    <div class="form-grid form-2" style="gap:12px">
+      <div style="grid-column:1/-1"><div class="form-lbl">Appartamento</div><select class="sel" id="ed-apt">${aptOpts}<option value="">— Altro —</option></select></div>
+      <div><div class="form-lbl">Ospite</div><input class="inp" id="ed-ospite" value="${escH(p.ospite)}"/></div>
+      <div><div class="form-lbl">Importo €</div><input class="inp" type="number" id="ed-importo" value="${p.importo}"/></div>
+      <div><div class="form-lbl">Check-in</div><input class="inp" type="date" id="ed-checkin" value="${p.checkin||''}"/></div>
+      <div><div class="form-lbl">Check-out</div><input class="inp" type="date" id="ed-checkout" value="${p.checkout||''}"/></div>
+      <div style="grid-column:1/-1"><div class="form-lbl">Note</div><input class="inp" id="ed-note" value="${escH(p.note||'')}"/></div>
+    </div>`;
+  document.getElementById('edit-modal').style.display='flex';
+}
+
+function saveEdit(){
+  if(!editTarget) return;
+  if(editTarget.type==='contratto'){
+    contratti=contratti.map(c=>c.id==editTarget.id?{...c,
+      nome:document.getElementById('ed-nome').value.trim(),
+      inquilino:document.getElementById('ed-inquilino').value.trim(),
+      canone:parseFloat(document.getElementById('ed-canone').value)||0,
+      scadenza:document.getElementById('ed-scadenza').value,
+      caparra:parseFloat(document.getElementById('ed-caparra').value)||0,
+      giorno:document.getElementById('ed-giorno').value,
+      note:document.getElementById('ed-note').value.trim(),
+    }:c);
+  } else if(editTarget.type==='prenotazione'){
+    const aptSel=document.getElementById('ed-apt');
+    const aptId=aptSel.value;
+    const aptNome=aptId?contratti.find(c=>c.id==aptId)?.nome||'':'Altro';
+    prenotazioni=prenotazioni.map(p=>p.id==editTarget.id?{...p,
+      aptId,aptNome,
+      ospite:document.getElementById('ed-ospite').value.trim(),
+      importo:parseFloat(document.getElementById('ed-importo').value)||0,
+      checkin:document.getElementById('ed-checkin').value,
+      checkout:document.getElementById('ed-checkout').value,
+      note:document.getElementById('ed-note').value.trim(),
+    }:p);
+  }
+  persist(); closeEdit(); renderAll();
+}
+function closeEdit(){ document.getElementById('edit-modal').style.display='none'; editTarget=null; }
+
+// ── ACTIONS ──────────────────────────────────────────────────────────────────
+function saveContratto(){
+  const nome=document.getElementById('l-nome').value.trim(); if(!nome) return;
+  contratti.push({
+    id:genId(), nome,
+    inquilino:document.getElementById('l-inquilino').value.trim(),
+    canone:parseFloat(document.getElementById('l-canone').value)||0,
+    scadenza:document.getElementById('l-scadenza').value,
+    caparra:parseFloat(document.getElementById('l-caparra').value)||0,
+    giorno:document.getElementById('l-giorno').value,
+    note:document.getElementById('l-note').value.trim(),
+  });
+  persist(); renderAll();
+  ['l-nome','l-inquilino','l-canone','l-scadenza','l-caparra','l-giorno','l-note'].forEach(id=>document.getElementById(id).value='');
+  toggleForm('form-lungo');
+}
+
+function deleteContratto(id){ if(!confirm('Eliminare questo contratto?')) return; contratti=contratti.filter(c=>c.id!=id); persist(); renderAll(); }
+
+function savePrenotazione(){
+  const ospite=document.getElementById('b-ospite').value.trim(); if(!ospite) return;
+  const aptSel=document.getElementById('b-apt');
+  const aptId=aptSel.value;
+  const aptNome=aptId?contratti.find(c=>c.id==aptId)?.nome||'':'';
+  prenotazioni.push({
+    id:genId(), aptId, aptNome, ospite,
+    importo:parseFloat(document.getElementById('b-importo').value)||0,
+    checkin:document.getElementById('b-checkin').value,
+    checkout:document.getElementById('b-checkout').value,
+    note:document.getElementById('b-note').value.trim(),
+  });
+  persist(); renderAll();
+  ['b-ospite','b-importo','b-checkin','b-checkout','b-note'].forEach(id=>document.getElementById(id).value='');
+  toggleForm('form-breve');
+}
+
+function deletePrenotazione(id){ prenotazioni=prenotazioni.filter(p=>p.id!=id); persist(); renderAll(); }
+
+function saveIncasso(){
+  const aptSel=document.getElementById('i-apt');
+  const aptId=aptSel.value;
+  const aptNome=aptSel.options[aptSel.selectedIndex]?.text||'';
+  const importo=parseFloat(document.getElementById('i-importo').value); if(!importo) return;
+  incassi.push({
+    id:genId(), aptId, aptNome, importo,
+    data:document.getElementById('i-data').value||oggi(),
+    note:document.getElementById('i-note').value.trim(),
+  });
+  persist(); renderAll();
+  document.getElementById('i-importo').value='';
+  document.getElementById('i-note').value='';
+}
+
+function deleteIncasso(id){ incassi=incassi.filter(i=>i.id!=id); persist(); renderAll(); }
+
+// ── RENDER ───────────────────────────────────────────────────────────────────
+function buildAptSelect(selId, includeBrevi=false){
+  const sel=document.getElementById(selId); if(!sel) return;
+  const opts=contratti.map(c=>`<option value="${c.id}">${escH(c.nome)}</option>`).join('');
+  sel.innerHTML=opts+(includeBrevi?'<option value="breve">— Affitto breve —</option>':'');
+}
+
+function renderPanoramica(){
+  document.getElementById('mese-label').textContent=mesiLabel();
+  const mc=meseCorrente();
+  // totale atteso mensile da contratti
+  const attesoMese=contratti.reduce((s,c)=>s+c.canone,0);
+  // incassi mese corrente
+  const incMese=incassi.filter(i=>i.data&&i.data.startsWith(mc)).reduce((s,i)=>s+i.importo,0);
+  // incassi totali brevi mese corrente
+  const incBrevi=prenotazioni.filter(p=>p.checkin&&p.checkin.startsWith(mc)).reduce((s,p)=>s+p.importo,0);
+  const totIncMese=incMese;
+  const residuo=Math.max(0,attesoMese-totIncMese);
+  const pct=attesoMese>0?Math.min(100,Math.round(totIncMese/attesoMese*100)):0;
+
+  document.getElementById('st-apt').textContent=contratti.length;
+  document.getElementById('st-atteso').textContent=eur(attesoMese);
+  document.getElementById('st-incassato').textContent=eur(totIncMese);
+  document.getElementById('st-delta').textContent=eur(residuo);
+  document.getElementById('st-delta').style.color=residuo>0?'var(--red2)':'var(--green2)';
+
+  document.getElementById('fin-cards').innerHTML=`
+    <div class="fin-card"><div class="fin-lbl">Atteso mensile</div><div class="fin-val" style="color:var(--cream)">${eur(attesoMese)}</div><div class="fin-sub">${contratti.length} contratti attivi</div></div>
+    <div class="fin-card"><div class="fin-lbl">Incassato ${mesiLabel()}</div><div class="fin-val" style="color:var(--green2)">${eur(totIncMese)}</div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:var(--green)"></div></div><div class="fin-sub">${pct}% del dovuto</div></div>
+    <div class="fin-card"><div class="fin-lbl">Residuo da incassare</div><div class="fin-val" style="color:${residuo>0?'var(--red2)':'var(--green2)'}">${eur(residuo)}</div><div class="fin-sub">${residuo>0?'Da riscuotere':'Tutto incassato ✓'}</div></div>
+    <div class="fin-card"><div class="fin-lbl">Incassi brevi (check-in mese)</div><div class="fin-val" style="color:var(--blue)">${eur(incBrevi)}</div><div class="fin-sub">${prenotazioni.filter(p=>p.checkin&&p.checkin.startsWith(mc)).length} prenotazioni</div></div>`;
+
+  // Incassi per appartamento mese corrente
+  const el=document.getElementById('panoramica-incassi');
+  if(!contratti.length){ el.innerHTML='<div class="empty">Nessun contratto attivo.</div>'; }
+  else {
+    el.innerHTML='<div class="month-grid">'+contratti.map(c=>{
+      const incC=incassi.filter(i=>i.aptId==c.id&&i.data&&i.data.startsWith(mc));
+      const totC=incC.reduce((s,i)=>s+i.importo,0);
+      const ok=totC>=c.canone;
+      const pctC=c.canone>0?Math.min(100,Math.round(totC/c.canone*100)):0;
+      return `<div class="month-card">
+        <div class="month-card-header">
+          <div><div class="month-card-title">${escH(c.nome)}</div><div class="month-card-sub">${escH(c.inquilino)}</div></div>
+          <span class="badge" style="color:${ok?'var(--green2)':'var(--red2)'};border-color:${ok?'var(--green)':'var(--red)'}44">${ok?'✓ Pagato':'In attesa'}</span>
+        </div>
+        <div class="incasso-row">
+          <div class="incasso-dot" style="background:${ok?'var(--green)':'var(--red)'}"></div>
+          <div class="incasso-name">Canone atteso</div>
+          <div class="incasso-atteso">${eur(c.canone)}</div>
+        </div>
+        <div class="incasso-row">
+          <div class="incasso-dot" style="background:var(--green2)"></div>
+          <div class="incasso-name">Incassato</div>
+          <div style="font-size:14px;color:var(--green2);font-family:var(--mono)">${eur(totC)}</div>
+        </div>
+        <div style="padding:8px 18px 14px"><div class="progress-bar"><div class="progress-fill" style="width:${pctC}%;background:${ok?'var(--green)':'var(--red)'}"></div></div></div>
+      </div>`;
+    }).join('')+'</div>';
+  }
+
+  // Prossime scadenze contratti
+  const scad=document.getElementById('panoramica-scadenze');
+  const conScad=contratti.filter(c=>c.scadenza).sort((a,b)=>a.scadenza.localeCompare(b.scadenza));
+  if(!conScad.length){ scad.innerHTML='<div class="empty">Nessuna scadenza impostata.</div>'; return; }
+  scad.innerHTML='<div class="prenot-list">'+conScad.map(c=>{
+    const gg=ggScad(c.scadenza);
+    const col=gg===null?'var(--text3)':gg<0?'var(--red2)':gg<=30?'var(--gold2)':'var(--text2)';
+    return `<div class="prenot-row" style="border-left-color:${col}">
+      <div class="prenot-dates" style="color:${col}">${fmtD(c.scadenza)}<br>${gg!==null?(gg<0?`scad. ${-gg}gg fa`:gg===0?'oggi':`${gg}gg`):''}</div>
+      <div class="prenot-guest">${escH(c.nome)}</div>
+      <div class="prenot-apt">${escH(c.inquilino)}</div>
+      <div class="prenot-importo" style="color:${col}">${eur(c.canone)}/mese</div>
+    </div>`;
+  }).join('')+'</div>';
+}
+
+function renderLunghi(){
+  buildAptSelect('i-apt', true);
+  const el=document.getElementById('contratti-list');
+  if(!contratti.length){ el.innerHTML='<div class="empty">Nessun contratto. Aggiungi il primo.</div>'; return; }
+  el.innerHTML='';
+  contratti.forEach(c=>{
+    const gg=ggScad(c.scadenza);
+    const col=gg===null?'var(--gold)':gg<0?'var(--red2)':gg<=60?'var(--gold2)':'var(--green2)';
+    const card=document.createElement('div');
+    card.className='apt-card';
+    card.innerHTML=`
+      <div class="apt-type">Affitto lungo</div>
+      <div class="apt-name">${escH(c.nome)}</div>
+      <div class="apt-addr">${escH(c.inquilino)||'—'}</div>
+      <div class="apt-nums">
+        <div><div class="apt-num-val" style="color:var(--cream)">${eur(c.canone)}</div><div class="apt-num-lbl">mese</div></div>
+        ${c.caparra?`<div><div class="apt-num-val" style="color:var(--text2)">${eur(c.caparra)}</div><div class="apt-num-lbl">caparra</div></div>`:''}
+        ${c.giorno?`<div><div class="apt-num-val" style="color:var(--text2)">${c.giorno}°</div><div class="apt-num-lbl">giorno pag.</div></div>`:''}
+      </div>
+      <div class="apt-footer">
+        <div style="font-size:11px;color:${col};font-family:var(--mono)">${c.scadenza?`Scade ${fmtD(c.scadenza)}${gg!==null?' · '+(gg<0?`${-gg}gg fa`:gg===0?'oggi':`${gg}gg`):''}` :'—'}</div>
+        <div class="apt-actions">
+          ${c.note?`<button class="btn-icon" title="${escH(c.note)}">📝</button>`:''}
+        </div>
+      </div>`;
+    attachLP(card,(x,y)=>showCtx(x,y,[
+      {icon:'✏️',label:'Modifica',action:`openEditContratto(${c.id})`},
+      'sep',
+      {icon:'🗑️',label:'Elimina',action:`deleteContratto(${c.id})`,danger:true},
+    ]));
+    el.appendChild(card);
+  });
+}
+
+function renderBrevi(){
+  buildAptSelect('b-apt');
+  const el=document.getElementById('prenot-list');
+  const sorted=[...prenotazioni].sort((a,b)=>(b.checkin||'').localeCompare(a.checkin||''));
+  if(!sorted.length){ el.innerHTML='<div class="empty">Nessuna prenotazione registrata.</div>'; return; }
+  el.innerHTML='';
+  sorted.forEach(p=>{
+    const row=document.createElement('div');
+    row.className='prenot-row';
+    const notti=p.checkin&&p.checkout?Math.ceil((new Date(p.checkout)-new Date(p.checkin))/86400000):null;
+    row.innerHTML=`
+      <div class="prenot-dates">${fmtD(p.checkin)}<br>→ ${fmtD(p.checkout)}${notti?`<br>${notti}n`:''}</div>
+      <div style="flex:1;min-width:120px"><div class="prenot-guest">${escH(p.ospite)}</div><div class="prenot-apt">${escH(p.aptNome)||'—'}</div>${p.note?`<div style="font-size:11px;color:var(--text3);margin-top:2px">${escH(p.note)}</div>`:''}</div>
+      <div class="prenot-importo">${eur(p.importo)}</div>`;
+    attachLP(row,(x,y)=>showCtx(x,y,[
+      {icon:'✏️',label:'Modifica',action:`openEditPrenotazione(${p.id})`},
+      'sep',
+      {icon:'🗑️',label:'Elimina',action:`deletePrenotazione(${p.id})`,danger:true},
+    ]));
+    el.appendChild(row);
+  });
+}
+
+function renderIncassi(){
+  buildAptSelect('i-apt', true);
+  // set today as default date
+  const iData=document.getElementById('i-data'); if(iData&&!iData.value) iData.value=oggi();
+  const el=document.getElementById('incassi-list');
+  const sorted=[...incassi].sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+  if(!sorted.length){ el.innerHTML='<div class="empty">Nessun incasso registrato.</div>'; return; }
+  el.innerHTML='<div class="prenot-list">'+sorted.map(i=>`
+    <div class="prenot-row" style="border-left-color:var(--green)">
+      <div class="prenot-dates" style="color:var(--text2)">${fmtD(i.data)}</div>
+      <div style="flex:1"><div class="prenot-guest">${escH(i.aptNome)||'—'}</div>${i.note?`<div style="font-size:12px;color:var(--text2);font-style:italic">${escH(i.note)}</div>`:''}</div>
+      <div class="prenot-importo">${eur(i.importo)}</div>
+      <button class="btn-icon" style="color:var(--red2);border-color:var(--red)44" onclick="deleteIncasso(${i.id})">✕</button>
+    </div>`).join('')+'</div>';
+}
+
+function renderAll(){
+  renderPanoramica();
+  if(currentTab==='lunghi')    renderLunghi();
+  if(currentTab==='brevi')     renderBrevi();
+  if(currentTab==='incassi')   renderIncassi();
+}
+
+const TABS_LIST=['panoramica','lunghi','brevi','incassi','sync'];
+function switchTab(id){
+  currentTab=id;
+  TABS_LIST.forEach(t=>{ document.getElementById('tab-'+t).style.display=t===id?'block':'none'; });
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',TABS_LIST[i]===id));
+  renderAll();
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+window.addEventListener('load',()=>{
+  const savedSheet=localStorage.getItem('aff_sheet_id')||'';
+  document.getElementById('cfg-sheet-id').value=savedSheet;
+  if(typeof gapi!=='undefined') initGapi();
+  else setTimeout(()=>{if(typeof gapi!=='undefined') initGapi();},1500);
+  renderAll();
+  document.getElementById('edit-modal').addEventListener('click',e=>{if(e.target.id==='edit-modal')closeEdit();});
+});
+</script>
+</body>
+</html>
