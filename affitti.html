@@ -157,6 +157,15 @@ button{cursor:pointer;}
 
 @keyframes fadeIn{from{opacity:0;transform:translateY(-5px);}to{opacity:1;transform:translateY(0);}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* ── APP SWITCHER ── */
+#app-switcher{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--hbg);border:1.5px solid var(--hborder);border-radius:30px;padding:6px 8px;display:flex;gap:4px;z-index:300;box-shadow:0 4px 20px rgba(0,0,0,0.35);}
+.app-sw-btn{display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:22px;border:none;background:transparent;color:var(--htext2);font-size:12px;font-weight:500;font-family:var(--sans);transition:all 0.2s;white-space:nowrap;}
+.app-sw-btn.active{background:var(--green);color:#fff;}
+.app-sw-btn:not(.active):hover{background:var(--hborder);color:var(--htext);}
+.app-sw-btn .sw-icon{font-size:16px;line-height:1;}
+.app-sw-btn .sw-label{font-size:11px;font-weight:600;}
+#main{padding-bottom:80px;}
 </style>
 </head>
 <body>
@@ -275,10 +284,7 @@ button{cursor:pointer;}
         </div>
         <div id="sync-log" style="margin-top:12px;font-size:11px;color:var(--text3);font-family:var(--mono)"></div>
       </div>
-      <div class="sec" style="margin-top:20px">Torna alla dashboard</div>
-      <div style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
-        <a href="https://ilborgo-dashboard.davide-petix.workers.dev" style="color:var(--gold2);font-size:14px;text-decoration:none">← Dashboard Il Borgo</a>
-      </div>
+
     </div>
 
   </div>
@@ -297,6 +303,16 @@ button{cursor:pointer;}
       <button class="btn-ghost" onclick="closeEdit()">Annulla</button>
     </div>
   </div>
+</div>
+
+<!-- APP SWITCHER -->
+<div id="app-switcher">
+  <button class="app-sw-btn" onclick="window.location.href='index.html'" title="Dashboard principale">
+    <span class="sw-icon">⚖️</span><span class="sw-label">Il Borgo</span>
+  </button>
+  <button class="app-sw-btn active" onclick="null" title="Gestione affitti">
+    <span class="sw-icon">🏠</span><span class="sw-label">Affitti</span>
+  </button>
 </div>
 
 <!-- SYNC INDICATOR -->

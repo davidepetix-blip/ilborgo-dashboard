@@ -206,6 +206,16 @@ button{cursor:pointer;font-family:var(--sans);}
 
 @keyframes fadeIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+/* ── APP SWITCHER ── */
+#app-switcher{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--hbg);border:1.5px solid var(--hborder);border-radius:30px;padding:6px 8px;display:flex;gap:4px;z-index:300;box-shadow:0 4px 20px rgba(0,0,0,0.35);}
+.app-sw-btn{display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:22px;border:none;background:transparent;color:var(--htext2);font-size:12px;font-weight:500;font-family:var(--sans);transition:all 0.2s;white-space:nowrap;}
+.app-sw-btn.active{background:var(--gold);color:#fff;}
+.app-sw-btn:not(.active):hover{background:var(--hborder);color:var(--htext);}
+.app-sw-btn .sw-icon{font-size:16px;line-height:1;}
+.app-sw-btn .sw-label{font-size:11px;font-weight:600;}
+/* push content above switcher */
+#main{padding-bottom:80px;}
 </style>
 </head>
 <body>
@@ -374,6 +384,16 @@ button{cursor:pointer;font-family:var(--sans);}
       <button class="btn-ghost" onclick="closeEdit()">Annulla</button>
     </div>
   </div>
+</div>
+
+<!-- APP SWITCHER -->
+<div id="app-switcher">
+  <button class="app-sw-btn active" onclick="null" title="Dashboard principale">
+    <span class="sw-icon">⚖️</span><span class="sw-label">Il Borgo</span>
+  </button>
+  <button class="app-sw-btn" onclick="window.location.href='affitti.html'" title="Gestione affitti">
+    <span class="sw-icon">🏠</span><span class="sw-label">Affitti</span>
+  </button>
 </div>
 
 <!-- SYNC INDICATOR -->
