@@ -6,147 +6,154 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <title>Affitti · Montedoro</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
 :root {
-  --bg:     #08090C;
-  --bg2:    #0D0F14;
-  --bg3:    #12141A;
-  --bg4:    #181B23;
-  --border: #1C1F28;
-  --border2:#252830;
-  --text:   #C8C4BC;
-  --text2:  #6B6860;
-  --text3:  #32342E;
-  --cream:  #E8E0D0;
-  --gold:   #B8962A;
-  --gold2:  #D4AE4E;
-  --green:  #4A8C6E;
-  --green2: #6AAF8E;
-  --red:    #8C4A4A;
-  --red2:   #C07070;
-  --blue:   #4A6A8C;
-  --font:   'Cormorant Garamond', Georgia, serif;
+  --hbg:    #1A1F2E;
+  --hbg2:   #141824;
+  --hborder:#2A3148;
+  --htext:  #E8EAF0;
+  --htext2: #8A92AA;
+  --bg:     #F4F2EE;
+  --bg2:    #FFFFFF;
+  --bg3:    #EEE9E1;
+  --border: #D8D2C8;
+  --border2:#C8C0B4;
+  --text:   #1A1814;
+  --text2:  #5A5650;
+  --text3:  #9A9490;
+  --gold:   #B8791A;
+  --gold2:  #D4922A;
+  --green:  #2A7A50;
+  --green2: #3A9A68;
+  --red:    #B83A3A;
+  --red2:   #D45050;
+  --blue:   #2A5A8C;
+  --blue2:  #3A72B0;
+  --font:   'EB Garamond', Georgia, serif;
+  --sans:   'DM Sans', system-ui, sans-serif;
   --mono:   'DM Mono', monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:16px;-webkit-font-smoothing:antialiased;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;-webkit-font-smoothing:antialiased;}
 ::-webkit-scrollbar{width:3px;} ::-webkit-scrollbar-thumb{background:var(--border2);}
-input,select,textarea,button{font-family:var(--font);}
+input,select,textarea,button{font-family:var(--sans);}
 input::placeholder,textarea::placeholder{color:var(--text3);}
-select option{background:var(--bg3);}
+select option{background:#fff;}
 button{cursor:pointer;}
 
-/* ── LAYOUT ── */
 #app{display:flex;flex-direction:column;min-height:100vh;}
 
-/* ── HEADER ── */
-#header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;position:sticky;top:0;z-index:100;}
-#header-inner{display:flex;align-items:stretch;justify-content:space-between;gap:0;}
-#header-left{padding:16px 0;display:flex;flex-direction:column;justify-content:center;}
-#header-eyebrow{font-size:9px;letter-spacing:4px;color:var(--text3);text-transform:uppercase;font-family:var(--mono);margin-bottom:3px;}
-#header-title{font-size:22px;font-weight:300;color:var(--cream);letter-spacing:0.5px;}
+/* ── HEADER dark ── */
+#header{background:var(--hbg);border-bottom:2px solid var(--hborder);padding:0 20px;position:sticky;top:0;z-index:100;}
+#header-inner{display:flex;align-items:stretch;justify-content:space-between;}
+#header-left{padding:14px 0;display:flex;flex-direction:column;justify-content:center;}
+#header-eyebrow{font-size:9px;letter-spacing:4px;color:var(--htext2);text-transform:uppercase;font-family:var(--mono);margin-bottom:3px;}
+#header-title{font-size:20px;font-weight:400;color:var(--htext);font-family:var(--font);}
 #header-title em{font-style:italic;color:var(--gold2);}
-#header-stats{display:flex;align-items:stretch;border-left:1px solid var(--border);margin-left:20px;}
-.hstat{padding:0 20px;display:flex;flex-direction:column;justify-content:center;text-align:center;border-right:1px solid var(--border);}
-.hstat-val{font-size:20px;font-weight:300;line-height:1;margin-bottom:2px;}
-.hstat-lbl{font-size:8px;letter-spacing:3px;color:var(--text3);text-transform:uppercase;font-family:var(--mono);}
-#tabs{display:flex;gap:0;overflow-x:auto;scrollbar-width:none;border-top:1px solid var(--border);}
+#header-stats{display:flex;align-items:stretch;border-left:1px solid var(--hborder);margin-left:16px;}
+.hstat{padding:0 16px;display:flex;flex-direction:column;justify-content:center;text-align:center;border-right:1px solid var(--hborder);}
+.hstat-val{font-size:18px;font-weight:600;line-height:1;margin-bottom:2px;font-family:var(--mono);}
+.hstat-lbl{font-size:8px;letter-spacing:2px;color:var(--htext2);text-transform:uppercase;font-family:var(--mono);}
+@media(max-width:520px){.hstat{padding:0 10px;}.hstat-val{font-size:14px;}}
+#tabs{display:flex;overflow-x:auto;scrollbar-width:none;border-top:1px solid var(--hborder);}
 #tabs::-webkit-scrollbar{display:none;}
-.tab-btn{padding:10px 18px;font-size:11px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text3);white-space:nowrap;letter-spacing:1px;text-transform:uppercase;font-family:var(--mono);transition:all 0.2s;}
-.tab-btn.active{color:var(--gold2);border-bottom-color:var(--gold2);}
+.tab-btn{padding:10px 18px;font-size:12px;font-weight:500;background:transparent;border:none;border-bottom:3px solid transparent;color:var(--htext2);white-space:nowrap;letter-spacing:0.3px;transition:all 0.15s;}
+.tab-btn.active{color:#fff;border-bottom-color:var(--green2);}
 
-/* ── MAIN ── */
-#main{flex:1;padding:28px 24px;max-width:1000px;margin:0 auto;width:100%;}
+/* ── MAIN light ── */
+#main{flex:1;padding:24px 20px;max-width:1000px;margin:0 auto;width:100%;}
 
 /* ── SECTION TITLE ── */
-.sec{font-size:9px;letter-spacing:4px;color:var(--text3);text-transform:uppercase;font-family:var(--mono);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.sec{font-size:10px;letter-spacing:3px;color:var(--text3);text-transform:uppercase;font-family:var(--mono);font-weight:500;margin-bottom:16px;padding-bottom:10px;border-bottom:1.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
 
 /* ── APPARTAMENTI GRID ── */
 .apt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:32px;}
-.apt-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;border-top:2px solid var(--gold);position:relative;overflow:hidden;}
-.apt-card::before{content:'';position:absolute;top:0;right:0;width:60px;height:60px;background:radial-gradient(circle at top right,var(--gold)08,transparent 70%);}
-.apt-type{font-size:8px;letter-spacing:3px;color:var(--text3);text-transform:uppercase;font-family:var(--mono);margin-bottom:6px;}
-.apt-name{font-size:17px;font-weight:400;color:var(--cream);margin-bottom:2px;}
+.apt-card{background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;padding:20px;border-top:4px solid var(--gold);box-shadow:0 1px 4px rgba(0,0,0,0.06);}
+.apt-type{font-size:9px;letter-spacing:3px;color:var(--text3);text-transform:uppercase;font-family:var(--mono);margin-bottom:6px;font-weight:500;}
+.apt-name{font-size:16px;font-weight:600;color:var(--text);margin-bottom:2px;}
 .apt-addr{font-size:12px;color:var(--text2);margin-bottom:14px;font-style:italic;}
 .apt-nums{display:flex;gap:16px;margin-bottom:14px;}
-.apt-num-val{font-size:20px;font-weight:300;}
+.apt-num-val{font-size:20px;font-weight:600;font-family:var(--mono);}
 .apt-num-lbl{font-size:8px;color:var(--text3);letter-spacing:2px;text-transform:uppercase;font-family:var(--mono);}
-.apt-footer{display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid var(--border);}
+.apt-footer{display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1.5px solid var(--border);}
 .apt-tenant{font-size:12px;color:var(--text2);font-style:italic;}
 .apt-actions{display:flex;gap:6px;}
 
-/* ── CARDS INCASSI MENSILI ── */
-.month-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin-bottom:28px;}
-.month-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
-.month-card-header{padding:14px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);}
-.month-card-title{font-size:14px;color:var(--cream);}
-.month-card-sub{font-size:10px;color:var(--text2);font-family:var(--mono);}
+/* ── INCASSI MENSILI ── */
+.month-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-bottom:28px;}
+.month-card{background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
+.month-card-header{padding:14px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:1.5px solid var(--border);background:var(--bg3);}
+.month-card-title{font-size:14px;font-weight:600;color:var(--text);}
+.month-card-sub{font-size:11px;color:var(--text2);}
 .incasso-row{display:flex;align-items:center;gap:10px;padding:11px 18px;border-bottom:1px solid var(--border);}
 .incasso-row:last-child{border-bottom:none;}
-.incasso-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
-.incasso-name{font-size:13px;color:var(--text);flex:1;}
+.incasso-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.incasso-name{font-size:13px;color:var(--text2);flex:1;}
 .incasso-atteso{font-size:12px;color:var(--text3);font-family:var(--mono);}
-.incasso-stato{font-size:11px;font-family:var(--mono);}
 
-/* ── PRENOTAZIONI BREVI ── */
+/* ── PRENOTAZIONI ── */
 .prenot-list{display:flex;flex-direction:column;gap:8px;margin-bottom:28px;}
-.prenot-row{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--blue);border-radius:8px;padding:14px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
-.prenot-dates{font-family:var(--mono);font-size:11px;color:var(--text2);white-space:nowrap;}
-.prenot-guest{font-size:14px;color:var(--cream);flex:1;min-width:120px;}
-.prenot-apt{font-size:11px;color:var(--text2);font-style:italic;}
-.prenot-importo{font-size:16px;font-weight:300;color:var(--green2);white-space:nowrap;}
-.prenot-tag{font-size:9px;letter-spacing:2px;color:var(--text3);font-family:var(--mono);border:1px solid var(--border2);padding:2px 8px;border-radius:10px;}
+.prenot-row{background:var(--bg2);border:1.5px solid var(--border);border-left:4px solid var(--blue);border-radius:10px;padding:14px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:0 1px 3px rgba(0,0,0,0.05);}
+.prenot-dates{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--text3);white-space:nowrap;}
+.prenot-guest{font-size:14px;font-weight:600;color:var(--text);flex:1;min-width:120px;}
+.prenot-apt{font-size:11px;color:var(--text2);}
+.prenot-importo{font-size:16px;font-weight:600;color:var(--green);font-family:var(--mono);white-space:nowrap;}
 
 /* ── RIEPILOGO FINANZIARIO ── */
 .fin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:28px;}
-.fin-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px 20px;}
-.fin-val{font-size:26px;font-weight:300;line-height:1;margin-bottom:4px;}
+.fin-card{background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
+.fin-val{font-size:26px;font-weight:600;line-height:1;margin-bottom:4px;font-family:var(--mono);}
 .fin-lbl{font-size:9px;letter-spacing:3px;color:var(--text3);text-transform:uppercase;font-family:var(--mono);}
-.fin-sub{font-size:11px;color:var(--text2);margin-top:6px;font-style:italic;}
-.progress-bar{height:3px;background:var(--border);border-radius:2px;margin-top:10px;overflow:hidden;}
-.progress-fill{height:100%;border-radius:2px;transition:width 0.5s ease;}
+.fin-sub{font-size:11px;color:var(--text2);margin-top:6px;}
+.progress-bar{height:4px;background:var(--border);border-radius:2px;margin-top:10px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:2px;transition:width 0.6s ease;}
 
 /* ── FORM ── */
-.form-box{background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:22px;margin-bottom:20px;animation:fadeIn 0.2s ease;}
+.form-box{background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;padding:22px;margin-bottom:20px;animation:fadeIn 0.2s ease;box-shadow:0 2px 8px rgba(0,0,0,0.07);}
 .form-grid{display:grid;gap:12px;}
 .form-2{grid-template-columns:1fr 1fr;}
 .form-3{grid-template-columns:1fr 1fr 1fr;}
 @media(max-width:560px){.form-2,.form-3{grid-template-columns:1fr;}.apt-grid{grid-template-columns:1fr;}.month-grid{grid-template-columns:1fr;}.fin-grid{grid-template-columns:1fr 1fr;}}
-.form-lbl{font-size:9px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;font-family:var(--mono);margin-bottom:5px;}
-.inp{width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:9px 12px;color:var(--text);font-size:14px;outline:none;transition:border-color 0.15s;}
-.inp:focus{border-color:var(--gold);}
-.sel{width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:9px 12px;color:var(--text);font-size:13px;outline:none;}
+.form-lbl{font-size:10px;letter-spacing:1.5px;color:var(--text3);text-transform:uppercase;font-family:var(--mono);font-weight:500;margin-bottom:5px;}
+.inp{width:100%;background:var(--bg);border:1.5px solid var(--border2);border-radius:7px;padding:9px 12px;color:var(--text);font-size:14px;outline:none;transition:border-color 0.15s;}
+.inp:focus{border-color:var(--gold);background:#fff;}
+.sel{width:100%;background:var(--bg);border:1.5px solid var(--border2);border-radius:7px;padding:9px 12px;color:var(--text);font-size:13px;outline:none;}
+.sel:focus{border-color:var(--gold);}
 
 /* ── BUTTONS ── */
-.btn-gold{background:var(--gold);color:#08090C;border:none;border-radius:6px;padding:9px 22px;font-size:13px;letter-spacing:0.3px;}
-.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--text2);border-radius:6px;padding:7px 14px;font-size:12px;transition:all 0.15s;}
+.btn-gold{background:var(--gold);color:#fff;border:none;border-radius:7px;padding:9px 22px;font-size:13px;font-weight:600;transition:background 0.15s;}
+.btn-gold:hover{background:var(--gold2);}
+.btn-ghost{background:#fff;border:1.5px solid var(--border2);color:var(--text2);border-radius:7px;padding:7px 14px;font-size:12px;font-weight:500;transition:all 0.15s;}
 .btn-ghost:hover{border-color:var(--gold);color:var(--gold);}
-.btn-icon{background:transparent;border:1px solid var(--border);color:var(--text3);border-radius:5px;padding:4px 8px;font-size:11px;}
-.btn-add{background:var(--gold);color:#08090C;border:none;border-radius:6px;padding:7px 14px;font-size:11px;letter-spacing:0.5px;font-family:var(--mono);}
-.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:9px;letter-spacing:1px;border:1px solid;font-family:var(--mono);}
+.btn-icon{background:#fff;border:1.5px solid var(--border);color:var(--text2);border-radius:6px;padding:4px 8px;font-size:11px;font-weight:500;}
+.btn-add{background:var(--gold);color:#fff;border:none;border-radius:7px;padding:7px 16px;font-size:11px;font-weight:600;letter-spacing:0.3px;}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:10px;font-size:10px;font-weight:600;border:1.5px solid;font-family:var(--mono);}
 
 /* ── EMPTY ── */
-.empty{text-align:center;color:var(--text3);padding:40px;font-size:15px;font-style:italic;}
+.empty{text-align:center;color:var(--text3);padding:40px;font-size:14px;font-style:italic;}
 
-/* ── CONTEXT MENU ── */
-#ctx-menu{position:fixed;background:var(--bg4);border:1px solid var(--border2);border-radius:10px;padding:6px;z-index:999;min-width:180px;box-shadow:0 8px 32px rgba(0,0,0,0.7);animation:fadeIn 0.15s ease;}
-#ctx-menu button{display:block;width:100%;text-align:left;background:transparent;border:none;color:var(--text);padding:10px 14px;font-size:13px;font-family:var(--font);border-radius:6px;}
-#ctx-menu button:hover{background:var(--border);}
-#ctx-menu .ctx-sep{height:1px;background:var(--border);margin:4px 0;}
-#ctx-menu .ctx-danger{color:var(--red2);}
+/* ── CTX MENU ── */
+#ctx-menu{position:fixed;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:6px;z-index:999;min-width:190px;box-shadow:0 8px 32px rgba(0,0,0,0.18);animation:fadeIn 0.15s ease;}
+#ctx-menu button{display:block;width:100%;text-align:left;background:transparent;border:none;color:var(--text);padding:10px 14px;font-size:13px;font-family:var(--sans);font-weight:500;border-radius:7px;}
+#ctx-menu button:hover{background:var(--bg3);}
+#ctx-menu .ctx-sep{height:1.5px;background:var(--border);margin:4px 0;}
+#ctx-menu .ctx-danger{color:var(--red);}
 
 /* ── EDIT MODAL ── */
-#edit-modal{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn 0.2s ease;}
-#edit-box{background:var(--bg3);border:1px solid var(--border2);border-radius:14px;padding:26px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;}
-#edit-ttl{font-size:10px;letter-spacing:3px;color:var(--gold2);text-transform:uppercase;font-family:var(--mono);margin-bottom:20px;}
+#edit-modal{position:fixed;inset:0;background:rgba(26,31,46,0.65);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn 0.2s ease;}
+#edit-box{background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:26px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;box-shadow:0 16px 48px rgba(0,0,0,0.22);}
+#edit-ttl{font-size:10px;letter-spacing:3px;color:var(--green);text-transform:uppercase;font-family:var(--mono);font-weight:500;margin-bottom:20px;}
 
 /* ── SYNC ── */
-#sync-indicator{position:fixed;bottom:16px;right:16px;background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:6px 12px;font-size:10px;font-family:var(--mono);color:var(--text3);z-index:200;display:flex;align-items:center;gap:6px;opacity:0;transition:opacity 0.3s;pointer-events:none;}
+#sync-indicator{position:fixed;bottom:16px;right:16px;background:var(--hbg);border:1.5px solid var(--hborder);border-radius:20px;padding:7px 14px;font-size:10px;font-family:var(--mono);color:var(--htext2);z-index:200;display:flex;align-items:center;gap:6px;opacity:0;transition:opacity 0.3s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,0.3);}
 #sync-indicator.visible{opacity:1;}
-.sync-dot{width:5px;height:5px;border-radius:50%;display:inline-block;}
+.sync-dot{width:7px;height:7px;border-radius:50%;display:inline-block;}
 .s-ok{background:var(--green2);} .s-err{background:var(--red2);} .s-ing{background:var(--gold);animation:pulse 1s infinite;}
 .sync-row{display:flex;gap:8px;flex-wrap:wrap;}
+
+/* ── SCADENZA CARD (panoramica) ── */
+.scad-row{background:var(--bg2);border:1.5px solid var(--border);border-left:4px solid var(--gold);border-radius:10px;padding:13px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:0 1px 3px rgba(0,0,0,0.05);}
 
 @keyframes fadeIn{from{opacity:0;transform:translateY(-5px);}to{opacity:1;transform:translateY(0);}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
@@ -248,7 +255,7 @@ button{cursor:pointer;}
     <!-- SYNC -->
     <div id="tab-sync" style="display:none">
       <div class="sec">Connessione Google</div>
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:22px;margin-bottom:20px">
+      <div style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:22px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
         <div id="google-status" style="display:flex;align-items:center;gap:8px;margin-bottom:16px;font-size:13px;color:var(--text2)">
           <span class="sync-dot s-err"></span> Non connesso
         </div>
@@ -256,12 +263,12 @@ button{cursor:pointer;}
         <button class="btn-ghost" id="btn-signout" onclick="signOut()" style="display:none;margin-left:8px">Disconnetti</button>
       </div>
       <div class="sec">Configurazione Sheets</div>
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:22px;margin-bottom:20px">
+      <div style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:22px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
         <div style="margin-bottom:12px"><div class="form-lbl">Google Sheet ID</div><input class="inp" id="cfg-sheet-id" placeholder="ID del foglio Google"/></div>
         <button class="btn-gold" onclick="saveConfig()">Salva</button>
       </div>
       <div class="sec">Sincronizzazione</div>
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:22px">
+      <div style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:22px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
         <div class="sync-row">
           <button class="btn-ghost" onclick="pullFromSheets()">↓ Importa da Sheets</button>
           <button class="btn-ghost" onclick="pushToSheets()">↑ Esporta su Sheets</button>
@@ -269,7 +276,7 @@ button{cursor:pointer;}
         <div id="sync-log" style="margin-top:12px;font-size:11px;color:var(--text3);font-family:var(--mono)"></div>
       </div>
       <div class="sec" style="margin-top:20px">Torna alla dashboard</div>
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px">
+      <div style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
         <a href="https://ilborgo-dashboard.davide-petix.workers.dev" style="color:var(--gold2);font-size:14px;text-decoration:none">← Dashboard Il Borgo</a>
       </div>
     </div>
@@ -688,7 +695,7 @@ function renderPanoramica(){
   scad.innerHTML='<div class="prenot-list">'+conScad.map(c=>{
     const gg=ggScad(c.scadenza);
     const col=gg===null?'var(--text3)':gg<0?'var(--red2)':gg<=30?'var(--gold2)':'var(--text2)';
-    return `<div class="prenot-row" style="border-left-color:${col}">
+    return `<div class="scad-row" style="border-left-color:${col}">
       <div class="prenot-dates" style="color:${col}">${fmtD(c.scadenza)}<br>${gg!==null?(gg<0?`scad. ${-gg}gg fa`:gg===0?'oggi':`${gg}gg`):''}</div>
       <div class="prenot-guest">${escH(c.nome)}</div>
       <div class="prenot-apt">${escH(c.inquilino)}</div>
