@@ -1,0 +1,46 @@
+name: Deploy Apps Script
+
+on:
+  push:
+    paths:
+      - '**.gs'
+      - 'appsscript.json'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Push .gs files to Google Apps Script
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install clasp
+        run: npm install -g @google/clasp
+
+      - name: Write clasp credentials
+        run: echo '${{ secrets.CLASP_CREDENTIALS }}' > ~/.clasprc.json
+
+      - name: Write .clasp.json
+        run: |
+          echo '{
+            "scriptId": "${{ secrets.APPS_SCRIPT_ID }}",
+            "rootDir": "."
+          }' > .clasp.json
+
+      - name: Push to Apps Script
+        run: clasp push --force
+
+      - name: Summary
+        if: success()
+        run: |
+          echo "### ✅ Apps Script aggiornato" >> $GITHUB_STEP_SUMMARY
+          echo "Branch: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "Commit: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "File .gs pushati:" >> $GITHUB_STEP_SUMMARY
+          ls *.gs 2>/dev/null | sed 's/^/- /' >> $GITHUB_STEP_SUMMARY || echo "- (nessun .gs nella root)" >> $GITHUB_STEP_SUMMARY
