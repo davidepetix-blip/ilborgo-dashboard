@@ -42,7 +42,7 @@ const JS_FIRST_CAM_COL   = 2;
 const JS_FIRST_DATA_ROW  = 3;
 const JS_HEADER_ROW      = 2;
 const JS_DEBOUNCE_SEC    = 10;
-const JS_SFONDO_NEUTRI   = ["#ffffff","#fffffe","#fce5cd"];
+const JS_SFONDO_NEUTRI   = ["#ffffff","#fffffe"]; // #fce5cd rimosso: è il colore degli affitti
 const JS_MESI = {
   "gennaio":0,"febbraio":1,"marzo":2,"aprile":3,"maggio":4,"giugno":5,
   "luglio":6,"agosto":7,"settembre":8,"ottobre":9,"novembre":10,"dicembre":11
@@ -64,6 +64,9 @@ function onOpen() {
     .addSeparator()
     .addItem('🔄 Rigenera JSON_ANNUALE', 'aggiornaJSONAnnuale')
     .addItem('🔍 Debug JSON_ANNUALE', 'debugJSONAnnuale')
+    .addSeparator()
+    .addItem('⏱ Installa aggiornamento automatico (ogni 5 min)', 'installaTriggerAutomatico')
+    .addItem('⏹ Rimuovi aggiornamento automatico', 'rimuoviTriggerAutomatico')
     .addToUi();
 }
 
@@ -84,9 +87,150 @@ function onEdit(e) {
     processSingleColumnBookings(sheet, col);
   }
 
+  // Segna modifica per il trigger time-based
+  segnaModifica();
   aggiornaJSONAnnualeOnEdit(e);
 }
 
+/**
+ * Chiamata dall'app via Sheets API dopo ogni scrittura di prenotazione.
+ * Segna il foglio come modificato — il trigger lo rileverà entro 5 minuti.
+ * Accessibile anche come Web App se deployato con accesso "chiunque".
+ */
+/**
+ * Web App endpoint — chiamato dall'app dopo ogni scrittura di prenotazione.
+ * Rigenera il JSON_ANNUALE immediatamente e risponde con il risultato.
+ *
+ * Deploy: Apps Script → Distribuisci → Nuova distribuzione → Tipo: App web
+ *   - Esegui come: Me
+ *   - Chi può accedere: Chiunque
+ * Copia l'URL e incollalo nelle impostazioni dell'app (campo "Web App URL")
+ */
+function doGet(e) {
+  return _rigenera(e);
+}
+function doPost(e) {
+  return _rigenera(e);
+}
+
+function _rigenera(e) {
+  const t0 = Date.now();
+  try {
+    const anno    = parseInt((e && e.parameter && e.parameter.anno) || new Date().getFullYear());
+    const ss      = SpreadsheetApp.getActiveSpreadsheet();
+    const segmenti= estraiSegmenti(ss, anno);
+    const merged  = unisciMultiMese(segmenti);
+    salvaJsonAnnuale(ss, merged, anno);
+    const ms = Date.now() - t0;
+    Logger.log('[WebApp] Rigenerato ' + merged.length + ' prenotazioni in ' + ms + 'ms');
+    return ContentService
+      .createTextOutput(JSON.stringify({ ok:true, prenotazioni:merged.length, ms }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    Logger.log('[WebApp] Errore: ' + err.message);
+    return ContentService
+      .createTextOutput(JSON.stringify({ ok:false, error: err.message }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function notificaModificaDaApp(e) {
+  segnaModifica();
+  return _rigenera(e);
+}
+
+
+// =============================================================
+// TRIGGER TIME-BASED — Rigenera JSON_ANNUALE automaticamente
+// Installare una volta sola dal menu Script Prenotazioni
+// =============================================================
+
+/**
+ * Installa un trigger che rigenera JSON_ANNUALE ogni 5 minuti.
+ * Chiamato dal menu o manualmente una volta sola.
+ */
+function installaTriggerAutomatico() {
+  // Rimuovi eventuali trigger esistenti sulle stesse funzioni
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === 'rigenera5min') {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+  // Installa trigger ogni 5 minuti
+  ScriptApp.newTrigger('rigenera5min')
+    .timeBased()
+    .everyMinutes(5)
+    .create();
+  SpreadsheetApp.getUi().alert('✅ Trigger installato: JSON_ANNUALE si aggiornerà ogni 5 minuti automaticamente.');
+}
+
+/**
+ * Rimuove il trigger automatico.
+ */
+function rimuoviTriggerAutomatico() {
+  let rimossi = 0;
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === 'rigenera5min') {
+      ScriptApp.deleteTrigger(t);
+      rimossi++;
+    }
+  });
+  SpreadsheetApp.getUi().alert(`Trigger rimosso (${rimossi} eliminati).`);
+}
+
+/**
+ * Funzione chiamata dal trigger ogni 5 minuti.
+ * Rigenera JSON_ANNUALE solo se il foglio è stato modificato di recente
+ * (evita rigenarazioni inutili nelle ore di inattività).
+ */
+function rigenera5min() {
+  try {
+    const ss    = SpreadsheetApp.getActiveSpreadsheet();
+    const anno  = new Date().getFullYear();
+    const props = PropertiesService.getScriptProperties();
+    const ora   = Date.now();
+
+    // Controlla il flag: cella JSON_ANNUALE!A1 o Properties
+    const jsSheet = ss.getSheetByName(JS_SHEET_NAME);
+    let ultimaMod = parseInt(props.getProperty('ultima_modifica_ts') || '0');
+
+    // Leggi anche dalla cella A1 (scritta dall'app via API)
+    if (jsSheet) {
+      const a1Val = jsSheet.getRange('A1').getValue();
+      if (typeof a1Val === 'string' && a1Val.includes('app:')) {
+        // Estrai timestamp dalla stringa "Ultimo aggiornamento app: 2026-..."
+        const match = a1Val.match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})/);
+        if (match) {
+          const tsApp = new Date(match[1]).getTime();
+          if (tsApp > ultimaMod) ultimaMod = tsApp;
+        }
+      }
+    }
+
+    // Se l'ultima modifica è più vecchia di 10 minuti, non rigenerare
+    if (ora - ultimaMod > 10 * 60 * 1000) {
+      Logger.log('[Trigger 5min] Nessuna modifica recente, skip');
+      return;
+    }
+
+    Logger.log('[Trigger 5min] Modifica rilevata (' + new Date(ultimaMod).toISOString() + '), rigenero...');
+    const segmenti = estraiSegmenti(ss, anno);
+    const merged   = unisciMultiMese(segmenti);
+    salvaJsonAnnuale(ss, merged, anno);
+    props.setProperty('ultima_regen_ts', String(ora));
+    Logger.log('[Trigger 5min] ✓ JSON_ANNUALE: ' + merged.length + ' prenotazioni');
+  } catch(e) {
+    Logger.log('[Trigger 5min] Errore: ' + e.message);
+  }
+}
+
+/**
+ * Segna che il foglio è stato modificato (chiamato da onEdit e da scritture API).
+ * Il trigger time-based usa questo flag per decidere se rigenerare.
+ */
+function segnaModifica() {
+  PropertiesService.getScriptProperties().setProperty('ultima_modifica_ts', String(Date.now()));
+}
 
 // =============================================================
 // NAVIGAZIONE
