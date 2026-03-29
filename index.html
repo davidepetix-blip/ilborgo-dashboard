@@ -207,6 +207,47 @@ button{cursor:pointer;font-family:var(--sans);}
 @keyframes fadeIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 
+/* ── EISENHOWER MATRIX ── */
+.matrix-wrap{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto;gap:12px;margin-bottom:24px;}
+.matrix-quad{border-radius:10px;border:1.5px solid var(--border);background:var(--bg2);overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06);min-height:220px;display:flex;flex-direction:column;}
+.matrix-quad.drag-active{border-color:var(--gold2);box-shadow:0 0 0 2px var(--gold2)44;}
+.mq-header{padding:12px 16px;border-bottom:1.5px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.mq-icon{font-size:20px;line-height:1;}
+.mq-label{font-size:12px;font-weight:600;flex:1;}
+.mq-count{font-size:11px;font-family:var(--mono);font-weight:600;background:var(--bg3);padding:2px 8px;border-radius:10px;color:var(--text3);}
+.mq-body{flex:1;padding:8px;display:flex;flex-direction:column;gap:5px;overflow-y:auto;max-height:300px;}
+.mq-body::-webkit-scrollbar{width:3px;}
+.mq-body::-webkit-scrollbar-thumb{background:var(--border2);}
+.mq-task{background:var(--bg3);border:1.5px solid var(--border);border-left:3px solid var(--text3);border-radius:7px;padding:8px 10px;font-size:13px;cursor:grab;display:flex;align-items:flex-start;gap:7px;transition:all 0.15s;user-select:none;-webkit-user-select:none;}
+.mq-task:active{cursor:grabbing;box-shadow:0 4px 12px rgba(0,0,0,0.15);transform:scale(0.98);}
+.mq-task.dragging{opacity:0.4;}
+.mq-task-txt{flex:1;line-height:1.4;}
+.mq-task-area{font-size:9px;color:var(--text3);font-family:var(--mono);letter-spacing:1px;text-transform:uppercase;margin-top:2px;}
+.mq-task-del{color:var(--text3);font-size:11px;padding:0 2px;background:none;border:none;flex-shrink:0;opacity:0.5;}
+.mq-task-del:hover{opacity:1;color:var(--red);}
+.mq-empty{text-align:center;color:var(--text3);font-size:12px;padding:24px 8px;font-style:italic;}
+.mq-add-btn{margin:6px 8px 8px;background:transparent;border:1.5px dashed var(--border2);border-radius:7px;padding:7px;font-size:12px;color:var(--text3);width:calc(100% - 16px);text-align:left;transition:all 0.15s;}
+.mq-add-btn:hover{border-color:var(--gold);color:var(--gold);}
+/* quad colors */
+.mq-q1 .mq-header{background:#FFF0F0;border-bottom-color:#E8C0C0;}
+.mq-q1 .mq-label{color:var(--red);}
+.mq-q1 .mq-task{border-left-color:var(--red);}
+.mq-q2 .mq-header{background:#FFF8EE;border-bottom-color:#E8D0A0;}
+.mq-q2 .mq-label{color:var(--gold);}
+.mq-q2 .mq-task{border-left-color:var(--gold);}
+.mq-q3 .mq-header{background:#F0F6FF;border-bottom-color:#A0C0E8;}
+.mq-q3 .mq-label{color:var(--blue);}
+.mq-q3 .mq-task{border-left-color:var(--blue);}
+.mq-q4 .mq-header{background:#F4F4F4;border-bottom-color:#D0D0D0;}
+.mq-q4 .mq-label{color:var(--text3);}
+.mq-q4 .mq-task{border-left-color:var(--text3);}
+/* inline add form */
+.mq-inline-form{margin:4px 8px 6px;display:flex;gap:6px;}
+.mq-inline-input{flex:1;background:var(--bg);border:1.5px solid var(--border2);border-radius:7px;padding:7px 10px;font-size:13px;color:var(--text);outline:none;}
+.mq-inline-input:focus{border-color:var(--gold);}
+.mq-inline-save{background:var(--gold);color:#fff;border:none;border-radius:7px;padding:7px 12px;font-size:12px;font-weight:600;}
+@media(max-width:540px){.matrix-wrap{grid-template-columns:1fr;grid-template-rows:auto;}}
+
 /* ── APP SWITCHER ── */
 #app-switcher{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--hbg);border:1.5px solid var(--hborder);border-radius:30px;padding:6px 8px;display:flex;gap:4px;z-index:300;box-shadow:0 4px 20px rgba(0,0,0,0.35);}
 .app-sw-btn{display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:22px;border:none;background:transparent;color:var(--htext2);font-size:12px;font-weight:500;font-family:var(--sans);transition:all 0.2s;white-space:nowrap;}
@@ -238,6 +279,7 @@ button{cursor:pointer;font-family:var(--sans);}
       <button class="tab-btn active" onclick="switchTab('overview')">Panoramica</button>
       <button class="tab-btn" onclick="switchTab('tasks')">Attività</button>
       <button class="tab-btn" onclick="switchTab('fornitori')">Fornitori</button>
+      <button class="tab-btn" onclick="switchTab('matrix')">Matrice</button>
       <button class="tab-btn" onclick="switchTab('appunti')">Note</button>
       <button class="tab-btn" onclick="switchTab('impostazioni')">⚙ Sync</button>
     </div>
@@ -323,6 +365,12 @@ button{cursor:pointer;font-family:var(--sans);}
       <div id="forn-list-active"></div>
       <div class="section-title" style="margin-top:20px">Pagati</div>
       <div id="forn-list-done"></div>
+    </div>
+
+    <!-- MATRIX -->
+    <div id="tab-matrix" style="display:none">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.6">Trascina i task tra i quadranti oppure aggiungine di nuovi direttamente. <strong>Tieni premuto</strong> per le opzioni.</p>
+      <div class="matrix-wrap" id="matrix-grid"></div>
     </div>
 
     <!-- NOTE -->
@@ -437,6 +485,8 @@ const STATO_PAG  = { da_pagare:{label:'Da pagare',color:'#B83A3A'}, in_scadenza:
 // ═══════════════════════════════════
 // DATA
 // ═══════════════════════════════════
+// matrixExtras: tasks added directly in the matrix (not in main task list)
+let matrixExtras = JSON.parse(localStorage.getItem('matrixExtras')||'[]');
 let tasks = JSON.parse(localStorage.getItem('tasks')||'null') || [
   {id:1,area:'borgo_admin',testo:'Rinnovo contratto gestione immobile Comune',priorita:'urgente',note:'Scade il 15 del mese',scadenza:'',done:false,ord:0},
   {id:2,area:'affitti',    testo:'Verifica check-in appartamento Via Roma 4', priorita:'urgente',note:'Ospite arriva venerdì',scadenza:'',done:false,ord:1},
@@ -464,6 +514,7 @@ function persist() {
   localStorage.setItem('tasks', JSON.stringify(tasks));
   localStorage.setItem('forn',  JSON.stringify(forn));
   localStorage.setItem('notes', JSON.stringify(notes));
+  localStorage.setItem('matrixExtras', JSON.stringify(matrixExtras));
   // Debounced write to Sheets (300ms after last change)
   if (accessToken && gapiReady) {
     setSyncIndicator('saving');
@@ -1235,6 +1286,7 @@ function renderTasks(){
           ${badgeHtml(t.priorita,PRIO_COLOR[t.priorita])}
           ${gg!==null?`<span style="font-size:11px;color:${gg<0?'#C87878':gg<=3?'#C8A060':'#888'};font-family:var(--mono)">${gg<0?`scad. ${-gg}gg fa`:gg===0?'oggi':`${gg}gg`}</span>`:''}
           ${t.note?`<span style="font-size:11px;color:var(--text3)">📝 ${escHtml(t.note)}</span>`:''}
+          ${t.quad?`<span style="font-size:10px;color:var(--text3);font-family:var(--mono);border:1px solid var(--border);padding:1px 6px;border-radius:8px">${QUADS[t.quad]?.icon} matrice</span>`:''}
         </div>
       </div>
       <div class="task-actions">
@@ -1242,10 +1294,15 @@ function renderTasks(){
         <button class="btn-icon" onclick="markTaskDone(${t.id})">✓</button>
       </div>`;
     // long press context menu
+    const mqItems = t.quad
+      ? [{icon:'↩️', label:'Rimuovi dalla matrice', action:`moveMqItem(${t.id},'task',null)`}]
+      : Object.entries(QUADS).map(([k,v])=>({icon:v.icon, label:`Matrice: ${v.label.split(',')[0]}`, action:`moveMqItem(${t.id},'task','${k}')`}));
     attachLongPress(row, (x,y) => showCtxMenu(x,y,[
       {icon:'✏️', label:'Modifica',  action:`openEditTask(${t.id})`},
       {icon:'▶',  label:'Focus',     action:`setFocus(${t.id})`},
       {icon:'✓',  label:'Completata',action:`markTaskDone(${t.id})`},
+      'sep',
+      ...mqItems,
       'sep',
       {icon:'🗑️', label:'Elimina',   action:`deleteTask(${t.id})`, danger:true},
     ]));
@@ -1337,6 +1394,194 @@ function renderFornitori(){
 function setFilterForn(k){filterArea.forn=k;renderFornitori();}
 
 // ═══════════════════════════════════
+// EISENHOWER MATRIX
+// ═══════════════════════════════════
+const QUADS = {
+  q1: { label:'Importante & Urgente',    icon:'🔴', hint:'Fai subito' },
+  q2: { label:'Urgente, non importante', icon:'🟡', hint:'Delega se puoi' },
+  q3: { label:'Importante, non urgente', icon:'🔵', hint:'Pianifica' },
+  q4: { label:'Né urgente né importante',icon:'⚪', hint:'Elimina o rimanda' },
+};
+
+let matrixDragItem = null; // {id, source:'task'|'extra', quad}
+
+function getMatrixItems(quad) {
+  const fromTasks  = tasks.filter(t=>!t.done && t.quad===quad);
+  const fromExtras = matrixExtras.filter(e=>e.quad===quad);
+  return [...fromTasks, ...fromExtras.map(e=>({...e, _extra:true}))];
+}
+
+function renderMatrix() {
+  const grid = document.getElementById('matrix-grid');
+  grid.innerHTML = '';
+  Object.entries(QUADS).forEach(([qk, qv]) => {
+    const items = getMatrixItems(qk);
+    const quad = document.createElement('div');
+    quad.className = `matrix-quad mq-${qk}`;
+    quad.dataset.quad = qk;
+
+    // header
+    quad.innerHTML = `
+      <div class="mq-header">
+        <span class="mq-icon">${qv.icon}</span>
+        <span class="mq-label">${qv.label}</span>
+        <span class="mq-count">${items.length}</span>
+      </div>
+      <div class="mq-body" id="mq-body-${qk}"></div>
+      <button class="mq-add-btn" onclick="showMqForm('${qk}')">+ Aggiungi</button>
+      <div id="mq-form-${qk}" style="display:none">
+        <div class="mq-inline-form">
+          <input class="mq-inline-input" id="mq-inp-${qk}" placeholder="Nuova voce..." onkeydown="if(event.key==='Enter')saveMqItem('${qk}')"/>
+          <button class="mq-inline-save" onclick="saveMqItem('${qk}')">✓</button>
+        </div>
+      </div>`;
+
+    // drag-over highlight
+    quad.addEventListener('dragover', e => { e.preventDefault(); quad.classList.add('drag-active'); });
+    quad.addEventListener('dragleave', () => quad.classList.remove('drag-active'));
+    quad.addEventListener('drop', e => {
+      e.preventDefault();
+      quad.classList.remove('drag-active');
+      if (!matrixDragItem) return;
+      moveMqItem(matrixDragItem.id, matrixDragItem.source, qk);
+      matrixDragItem = null;
+    });
+
+    // Touch drop
+    quad.addEventListener('touchend', e => {
+      if (!matrixDragItem) return;
+      const touch = e.changedTouches[0];
+      const el = document.elementFromPoint(touch.clientX, touch.clientY);
+      const targetQuad = el?.closest('.matrix-quad')?.dataset?.quad;
+      if (targetQuad && targetQuad !== matrixDragItem.quad) {
+        moveMqItem(matrixDragItem.id, matrixDragItem.source, targetQuad);
+      }
+      matrixDragItem = null;
+      document.querySelectorAll('.matrix-quad').forEach(q=>q.classList.remove('drag-active'));
+      if (window._mqClone) { document.body.removeChild(window._mqClone); window._mqClone=null; }
+    });
+
+    grid.appendChild(quad);
+
+    // populate body
+    const body = document.getElementById(`mq-body-${qk}`);
+    if (!items.length) {
+      body.innerHTML = `<div class="mq-empty">${qv.hint}</div>`;
+    } else {
+      items.forEach(item => {
+        const el = document.createElement('div');
+        el.className = 'mq-task';
+        el.draggable = true;
+        el.dataset.id = item.id;
+        el.dataset.src = item._extra ? 'extra' : 'task';
+        const area = item._extra ? '' : (AREE[item.area]?.label || '');
+        el.innerHTML = `
+          <div style="flex:1">
+            <div class="mq-task-txt">${escHtml(item.testo||item.label||'')}</div>
+            ${area ? `<div class="mq-task-area">${area}</div>` : ''}
+          </div>
+          <button class="mq-task-del" onclick="deleteMqItem(${item.id},'${item._extra?'extra':'task'}','${qk}')" title="Rimuovi">✕</button>`;
+
+        // Drag start
+        el.addEventListener('dragstart', e => {
+          matrixDragItem = { id: item.id, source: item._extra?'extra':'task', quad: qk };
+          el.classList.add('dragging');
+          setTimeout(()=>el.classList.remove('dragging'),0);
+        });
+
+        // Touch drag
+        el.addEventListener('touchstart', ev => {
+          matrixDragItem = { id: item.id, source: item._extra?'extra':'task', quad: qk };
+          const clone = el.cloneNode(true);
+          clone.style.cssText = `position:fixed;left:${el.getBoundingClientRect().left}px;top:${el.getBoundingClientRect().top}px;width:${el.offsetWidth}px;opacity:0.75;z-index:999;pointer-events:none;`;
+          document.body.appendChild(clone);
+          window._mqClone = clone;
+          window._mqStartY = ev.touches[0].clientY;
+          window._mqStartTop = el.getBoundingClientRect().top;
+        }, {passive:true});
+
+        el.addEventListener('touchmove', ev => {
+          if (!window._mqClone) return;
+          const dy = ev.touches[0].clientY - window._mqStartY;
+          window._mqClone.style.top = (window._mqStartTop + dy) + 'px';
+          // highlight quad under finger
+          const under = document.elementFromPoint(ev.touches[0].clientX, ev.touches[0].clientY);
+          document.querySelectorAll('.matrix-quad').forEach(q=>q.classList.remove('drag-active'));
+          under?.closest('.matrix-quad')?.classList.add('drag-active');
+        }, {passive:true});
+
+        // Long press for context menu
+        let lpTimer;
+        el.addEventListener('touchstart', ev => {
+          lpTimer = setTimeout(()=>{
+            matrixDragItem = null;
+            if(window._mqClone){document.body.removeChild(window._mqClone);window._mqClone=null;}
+            showCtxMenu(ev.touches[0].clientX, ev.touches[0].clientY, buildMqCtx(item, qk));
+          }, 700);
+        }, {passive:true});
+        el.addEventListener('touchend', () => clearTimeout(lpTimer));
+        el.addEventListener('touchmove', () => clearTimeout(lpTimer), {passive:true});
+        el.addEventListener('contextmenu', ev => {
+          ev.preventDefault();
+          showCtxMenu(ev.clientX, ev.clientY, buildMqCtx(item, qk));
+        });
+
+        body.appendChild(el);
+      });
+    }
+  });
+}
+
+function buildMqCtx(item, fromQuad) {
+  const moveItems = Object.entries(QUADS)
+    .filter(([k]) => k !== fromQuad)
+    .map(([k,v]) => ({ icon: v.icon, label: `Sposta in "${v.label.split(',')[0]}"`, action: `moveMqItem(${item.id},'${item._extra?'extra':'task'}','${k}')` }));
+  return [
+    ...moveItems,
+    'sep',
+    { icon:'🗑️', label:'Rimuovi', action:`deleteMqItem(${item.id},'${item._extra?'extra':'task'}','${fromQuad}')`, danger:true }
+  ];
+}
+
+function showMqForm(qk) {
+  const form = document.getElementById(`mq-form-${qk}`);
+  const btn  = form.previousElementSibling;
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  btn.style.display  = form.style.display === 'none' ? 'block' : 'none';
+  if (form.style.display === 'block') {
+    setTimeout(() => document.getElementById(`mq-inp-${qk}`)?.focus(), 50);
+  }
+}
+
+function saveMqItem(qk) {
+  const inp = document.getElementById(`mq-inp-${qk}`);
+  const label = inp?.value.trim(); if (!label) return;
+  matrixExtras.push({ id: Date.now(), label, quad: qk });
+  inp.value = '';
+  persist();
+  renderMatrix();
+}
+
+function moveMqItem(id, source, toQuad) {
+  if (source === 'task') {
+    tasks = tasks.map(t => t.id === id ? {...t, quad: toQuad} : t);
+  } else {
+    if (toQuad === null) { matrixExtras = matrixExtras.filter(e => e.id !== id); }
+    else { matrixExtras = matrixExtras.map(e => e.id === id ? {...e, quad: toQuad} : e); }
+  }
+  persist(); renderMatrix(); renderTasks();
+}
+
+function deleteMqItem(id, source, quad) {
+  if (source === 'task') {
+    tasks = tasks.map(t => t.id === id ? {...t, quad: null} : t);
+  } else {
+    matrixExtras = matrixExtras.filter(e => e.id !== id);
+  }
+  persist(); renderMatrix();
+}
+
+// ═══════════════════════════════════
 // RENDER NOTES
 // ═══════════════════════════════════
 function renderNotes(){
@@ -1347,7 +1592,7 @@ function updateNote(k,v){notes[k]=v;persist();}
 // ═══════════════════════════════════
 // TAB SWITCHING
 // ═══════════════════════════════════
-const TABS_LIST=['overview','tasks','fornitori','appunti','impostazioni'];
+const TABS_LIST=['overview','tasks','fornitori','matrix','appunti','impostazioni'];
 function switchTab(id){
   currentTab=id;
   TABS_LIST.forEach(t=>{document.getElementById('tab-'+t).style.display=t===id?'block':'none';});
@@ -1359,6 +1604,7 @@ function renderAll(){
   renderOverview();
   if(currentTab==='tasks')     renderTasks();
   if(currentTab==='fornitori') renderFornitori();
+  if(currentTab==='matrix')    renderMatrix();
   if(currentTab==='appunti')   renderNotes();
   // notif button state
   const btn=document.getElementById('btn-notif');
