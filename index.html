@@ -40,7 +40,7 @@
   --borgo:  #B8791A;
   --affitti:#2A7A50;
   --hotel:  #B83A3A;
-  --salvo:  #2A5A8C;
+  --architettura:  #2A5A8C;
   /* Typography */
   --font:   'EB Garamond', Georgia, serif;
   --sans:   'DM Sans', system-ui, sans-serif;
@@ -265,7 +265,7 @@ button{cursor:pointer;font-family:var(--sans);}
     <div id="header-top">
       <div id="header-title">
         <div id="header-eyebrow">Montedoro · Gestione Operativa</div>
-        <div id="header-name">Il Borgo srl <span style="color:#2E2E3A;margin:0 10px">·</span><span style="color:#666;font-size:17px">Salvo Luigi</span></div>
+        <div id="header-name">Il Borgo srl <span style="color:#2E2E3A;margin:0 10px">·</span><span style="color:#666;font-size:17px">Architettura</span></div>
       </div>
       <div id="header-stats">
         <div class="stat-box"><div class="stat-num" id="stat-urgenti" style="color:#C87878">—</div><div class="stat-label">Urgenti</div></div>
@@ -477,7 +477,7 @@ const AREE = {
   borgo_admin:{ label:'Il Borgo srl',       sub:'Amministrazione',      icon:'⚖️', color:'#B8791A' },
   affitti:    { label:'Affitti',             sub:'Appartamenti privati', icon:'🏠', color:'#2A7A50' },
   hospitality:{ label:'Ristorante/Albergo', sub:'Operativo',            icon:'🍽️', color:'#B83A3A' },
-  salvo:      { label:'Salvo Luigi',         sub:'Progettazione legno',  icon:'📐', color:'#2A5A8C' },
+  architettura:      { label:'Architettura',         sub:'Progettazione legno',  icon:'📐', color:'#2A5A8C' },
 };
 const PRIO_COLOR = { urgente:'#B83A3A', normale:'#B8791A', bassa:'#9A9490' };
 const STATO_PAG  = { da_pagare:{label:'Da pagare',color:'#B83A3A'}, in_scadenza:{label:'In scadenza',color:'#B8791A'}, pagato:{label:'Pagato',color:'#2A7A50'} };
@@ -491,7 +491,7 @@ let tasks = JSON.parse(localStorage.getItem('tasks')||'null') || [
   {id:1,area:'borgo_admin',testo:'Rinnovo contratto gestione immobile Comune',priorita:'urgente',note:'Scade il 15 del mese',scadenza:'',done:false,ord:0},
   {id:2,area:'affitti',    testo:'Verifica check-in appartamento Via Roma 4', priorita:'urgente',note:'Ospite arriva venerdì',scadenza:'',done:false,ord:1},
   {id:3,area:'hospitality',testo:'Ordine settimanale fornitore bevande',       priorita:'normale',note:'',scadenza:'',done:false,ord:2},
-  {id:4,area:'salvo',      testo:'Aggiorna tavole progetto casa in legno',     priorita:'normale',note:'Cliente attende risposta',scadenza:'',done:false,ord:3},
+  {id:4,area:'architettura',      testo:'Aggiorna tavole progetto casa in legno',     priorita:'normale',note:'Cliente attende risposta',scadenza:'',done:false,ord:3},
   {id:5,area:'borgo_admin',testo:'F24 contributi dipendenti ristorante',       priorita:'urgente',note:'',scadenza:'',done:false,ord:4},
 ];
 let forn = JSON.parse(localStorage.getItem('forn')||'null') || [
@@ -499,7 +499,7 @@ let forn = JSON.parse(localStorage.getItem('forn')||'null') || [
   {id:11,area:'hospitality',nome:'Consorzio vini Sicilia',    importo:620, scadenza:'2026-03-12',stato:'da_pagare',  nota:'',ord:1},
   {id:12,area:'borgo_admin', nome:'Commercialista Gallo',     importo:900, scadenza:'2026-03-15',stato:'da_pagare',  nota:'Contabilità Q1',ord:2},
   {id:13,area:'affitti',     nome:'Idraulico Di Bella',       importo:240, scadenza:'2026-03-01',stato:'da_pagare',  nota:'Apt. Via Matteotti',ord:3},
-  {id:14,area:'salvo',       nome:'Segheria Ganci Legname',   importo:1150,scadenza:'2026-03-20',stato:'pagato',     nota:'',ord:4},
+  {id:14,area:'architettura',       nome:'Segheria Ganci Legname',   importo:1150,scadenza:'2026-03-20',stato:'pagato',     nota:'',ord:4},
   {id:15,area:'hospitality', nome:'Pulizie e lavanderia',     importo:200, scadenza:'2026-03-10',stato:'in_scadenza',nota:'Mensile',ord:5},
 ];
 let notes = JSON.parse(localStorage.getItem('notes')||'{}');
