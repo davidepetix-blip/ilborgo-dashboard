@@ -310,7 +310,7 @@ button{cursor:pointer;font-family:var(--sans);}
           <div style="grid-column:1/-1"><input class="inp" id="t-testo" placeholder="Descrizione attività..." onkeydown="if(event.key==='Enter')saveTask()"/></div>
           <div><div class="form-label">Area</div><select class="sel" id="t-area"></select></div>
           <div><div class="form-label">Priorità</div><select class="sel" id="t-priorita"><option value="urgente">🔥 Urgente</option><option value="normale" selected>⚡ Normale</option><option value="bassa">🌱 Bassa</option></select></div>
-          <div><div class="form-label">Scadenza</div><input class="inp" type="date" id="t-scadenza"/></div>
+          <div><div class="form-label">Scadenza *</div><input class="inp" type="date" id="t-scadenza" required/></div>
           <div style="grid-column:1/-1"><input class="inp" id="t-note" placeholder="Note (opzionale)"/></div>
         </div>
         <button class="btn-gold" onclick="saveTask()">Aggiungi</button>
@@ -347,7 +347,7 @@ button{cursor:pointer;font-family:var(--sans);}
           <div><input class="inp" id="f-nome" placeholder="Nome fornitore..."/></div>
           <div><input class="inp" id="f-importo" type="number" placeholder="Importo €"/></div>
           <div><div class="form-label">Area</div><select class="sel" id="f-area"></select></div>
-          <div><div class="form-label">Scadenza</div><input class="inp" type="date" id="f-scadenza"/></div>
+          <div><div class="form-label">Scadenza *</div><input class="inp" type="date" id="f-scadenza" required/></div>
           <div style="grid-column:1/-1"><input class="inp" id="f-nota" placeholder="Nota (es. n. fattura)"/></div>
         </div>
         <button class="btn-gold" onclick="saveForn()">Aggiungi</button>
@@ -386,24 +386,23 @@ button{cursor:pointer;font-family:var(--sans);}
         <button class="btn-gold" id="btn-notif" onclick="requestNotifPermission()">Attiva notifiche</button>
         <div id="notif-status" style="font-size:11px;color:var(--text3);margin-top:8px;font-family:var(--mono)"></div>
       </div>
-      <div class="section-title">Configurazione</div>
+      <div class="section-title">Calendari (sorgente primaria)</div>
+      <div style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:22px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
+        <p style="font-size:12px;color:var(--text2);line-height:1.8;font-family:var(--mono)" id="cal-map-info"></p>
+      </div>
+      <div class="section-title">Configurazione backup (Sheets)</div>
       <div style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:22px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
         <div style="margin-bottom:14px">
           <div class="form-label">Google Sheet ID</div>
           <input class="inp" id="cfg-sheet-id" value="1tuO4m5MABDGmLb63_42sV3ikWXsO_eexLWg6Vx0eBf0"/>
         </div>
-        <div style="margin-bottom:14px">
-          <div class="form-label">Calendar ID</div>
-          <input class="inp" id="cfg-cal-id" value="c5glbck4juqq4f9r5k6d13tbl4@group.calendar.google.com"/>
-        </div>
         <button class="btn-gold" onclick="saveConfig()">Salva configurazione</button>
       </div>
       <div class="section-title">Sincronizzazione</div>
       <div style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:22px;display:flex;gap:10px;flex-wrap:wrap;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
-        <button class="btn-ghost" onclick="syncFromSheets()">↓ Importa da Sheets</button>
-        <button class="btn-ghost" onclick="syncToSheets()">↑ Esporta su Sheets</button>
-        <button class="btn-ghost" onclick="syncCalendar()">📅 Sincronizza Calendar</button>
-        <button class="btn-ghost" style="color:#C87878;border-color:#C8787844" onclick="cleanCalendar()">🗑 Pulisci Calendar</button>
+        <button class="btn-ghost" onclick="manualCalendarSync()">📅 Sincronizza Calendar ora</button>
+        <button class="btn-ghost" onclick="syncFromSheets()">↓ Importa da Sheets (backup)</button>
+        <button class="btn-ghost" onclick="syncToSheets()">↑ Esporta su Sheets (backup)</button>
         <div id="sync-log" style="width:100%;font-size:11px;color:var(--text3);margin-top:8px;font-family:var(--mono)"></div>
       </div>
     </div>
@@ -442,6 +441,7 @@ button{cursor:pointer;font-family:var(--sans);}
 <script src="https://apis.google.com/js/api.js"></script>
 <script src="assets/config.js"></script>
 <script src="assets/auth.js"></script>
+<script src="assets/gcal.js"></script>
 <script>
 // ═══════════════════════════════════
 // CONFIG
@@ -450,7 +450,6 @@ const CLIENT_ID = ILBORGO_CONFIG.CLIENT_ID;
 const SCOPES    = ILBORGO_CONFIG.SCOPES;
 const SHEET_TABS = { tasks:'Attività', forn:'Fornitori', notes:'Note' };
 let SHEET_ID = localStorage.getItem('cfg_sheet_id') || ILBORGO_CONFIG.SHEET_ID_MAIN;
-let CAL_ID   = localStorage.getItem('cfg_cal_id')   || ILBORGO_CONFIG.CAL_ID_LEGACY;
 let accessToken = null;
 let gapiReady = false;
 let currentTab = 'overview';
@@ -508,11 +507,30 @@ function persist() {
   localStorage.setItem('forn',  JSON.stringify(forn));
   localStorage.setItem('notes', JSON.stringify(notes));
   localStorage.setItem('matrixExtras', JSON.stringify(matrixExtras));
-  // Debounced write to Sheets (300ms after last change)
-  if (accessToken && gapiReady) {
+  // Debounced write a Calendar (sorgente primaria). Sheets resta un backup
+  // secondario, aggiornato subito dopo un push Calendar riuscito.
+  if (accessToken) {
     setSyncIndicator('saving');
     clearTimeout(syncTimer);
-    syncTimer = setTimeout(() => pushToSheets(), 300);
+    syncTimer = setTimeout(() => pushToCalendar(), 400);
+  }
+}
+
+let calSyncInProgress = false;
+async function pushToCalendar() {
+  if (!accessToken) return;
+  if (!IlBorgoCal.isConfigured()) { setSyncIndicator('error'); return; }
+  if (calSyncInProgress) { clearTimeout(syncTimer); syncTimer = setTimeout(() => pushToCalendar(), 400); return; }
+  calSyncInProgress = true;
+  try {
+    await IlBorgoCal.push(tasks, forn);
+    setSyncIndicator('saved');
+    if (gapiReady) pushToSheets().catch(e => console.error('backup Sheets error:', e));
+  } catch (e) {
+    setSyncIndicator('error');
+    console.error('pushToCalendar error:', e);
+  } finally {
+    calSyncInProgress = false;
   }
 }
 
@@ -652,7 +670,7 @@ function openEditTask(id) {
           <option value="bassa"${t.priorita==='bassa'?' selected':''}>🌱 Bassa</option>
         </select>
       </div>
-      <div><div class="form-label">Scadenza</div><input class="inp" type="date" id="ed-scadenza" value="${t.scadenza||''}"/></div>
+      <div><div class="form-label">Scadenza *</div><input class="inp" type="date" id="ed-scadenza" value="${t.scadenza||''}" required/></div>
       <div><div class="form-label">Note</div><input class="inp" id="ed-note" value="${escHtml(t.note||'')}"/></div>
     </div>`;
   areaSelectOpts('ed-area', t.area);
@@ -668,7 +686,7 @@ function openEditForn(id) {
       <div><div class="form-label">Nome</div><input class="inp" id="ed-nome" value="${escHtml(f.nome)}"/></div>
       <div><div class="form-label">Importo €</div><input class="inp" type="number" id="ed-importo" value="${f.importo}"/></div>
       <div><div class="form-label">Area</div><select class="sel" id="ed-area"></select></div>
-      <div><div class="form-label">Scadenza</div><input class="inp" type="date" id="ed-scadenza" value="${f.scadenza||''}"/></div>
+      <div><div class="form-label">Scadenza *</div><input class="inp" type="date" id="ed-scadenza" value="${f.scadenza||''}" required/></div>
       <div><div class="form-label">Stato</div>
         <select class="sel" id="ed-stato">
           ${Object.entries(STATO_PAG).map(([k,v])=>`<option value="${k}"${f.stato===k?' selected':''}>${v.label}</option>`).join('')}
@@ -682,14 +700,17 @@ function openEditForn(id) {
 
 function saveEdit() {
   if (!editTarget) return;
+  const scadEl = document.getElementById('ed-scadenza');
+  if (!scadEl.value) { markInvalid(scadEl); return; }
   if (editTarget.type === 'task') {
     tasks = tasks.map(t => t.id===editTarget.id ? {
       ...t,
       testo:    document.getElementById('ed-testo').value.trim(),
       area:     document.getElementById('ed-area').value,
       priorita: document.getElementById('ed-priorita').value,
-      scadenza: document.getElementById('ed-scadenza').value,
+      scadenza: scadEl.value,
       note:     document.getElementById('ed-note').value.trim(),
+      scadNonConfermata: false,
     } : t);
   } else {
     forn = forn.map(f => f.id===editTarget.id ? {
@@ -697,9 +718,10 @@ function saveEdit() {
       nome:     document.getElementById('ed-nome').value.trim(),
       importo:  parseFloat(document.getElementById('ed-importo').value)||0,
       area:     document.getElementById('ed-area').value,
-      scadenza: document.getElementById('ed-scadenza').value,
+      scadenza: scadEl.value,
       stato:    document.getElementById('ed-stato').value,
       nota:     document.getElementById('ed-nota').value.trim(),
+      scadNonConfermata: false,
     } : f);
   }
   persist(); closeEdit(); renderAll();
@@ -870,11 +892,86 @@ function onAuthChange(connected) {
   accessToken = connected ? IlBorgoAuth.getToken() : null;
   if (gapiReady) { try { gapi.client.setToken(accessToken ? {access_token:accessToken} : null); } catch(e){} }
   updateAuthUI(connected);
-  if (connected && gapiReady && firstAuth) {
+  if (connected && firstAuth) {
     firstAuth = false;
-    setTimeout(() => autoLoadFromSheets(), 400);
+    setTimeout(() => initialCalendarSync(), 300);
   }
   renderAll();
+}
+
+// ═══════════════════════════════════
+// CALENDAR-AS-DB — sorgente primaria (assets/gcal.js)
+// ═══════════════════════════════════
+async function initialCalendarSync() {
+  if (!IlBorgoCal.isConfigured()) {
+    log('⚠ Calendar non configurato — resto su Sheets come fallback');
+    if (gapiReady) autoLoadFromSheets();
+    return;
+  }
+  setSyncIndicator('loading');
+  try {
+    const r = await IlBorgoCal.poll();
+    applyCalendarChanges(r);
+    setSyncIndicator('saved');
+  } catch(e) {
+    console.error('initial calendar sync error:', e);
+    setSyncIndicator('error');
+  }
+  IlBorgoCal.startAutoSync(applyCalendarChanges);
+}
+
+// Applica gli upsert/delete letti da Calendar allo stato locale (poll → app).
+function applyCalendarChanges(result) {
+  if (!result) return;
+  let changed = false;
+  (result.upserts||[]).forEach(u => {
+    changed = true;
+    if (u.kind === 'task') {
+      const idx = tasks.findIndex(t => t.id === u.item.id);
+      // preserva il flag locale "data da confermare" finché l'utente non modifica
+      if (idx >= 0) tasks[idx] = { ...u.item, scadNonConfermata: tasks[idx].scadNonConfermata };
+      else tasks.push(u.item);
+    } else {
+      const idx = forn.findIndex(f => f.id === u.item.id);
+      if (idx >= 0) forn[idx] = { ...u.item, scadNonConfermata: forn[idx].scadNonConfermata };
+      else forn.push(u.item);
+    }
+  });
+  (result.deletes||[]).forEach(key => {
+    changed = true;
+    const [kind, idStr] = key.split(':'); const id = parseInt(idStr,10);
+    if (kind === 't') tasks = tasks.filter(t => t.id !== id);
+    else forn = forn.filter(f => f.id !== id);
+  });
+  if (changed) {
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+    localStorage.setItem('forn',  JSON.stringify(forn));
+    renderAll();
+  }
+}
+
+async function manualCalendarSync() {
+  if (!accessToken) { log('⚠ Connetti prima Google'); return; }
+  if (!IlBorgoCal.isConfigured()) { log('⚠ Calendar non configurato'); return; }
+  log('Sincronizzazione Calendar…');
+  try {
+    const r = await IlBorgoCal.poll();
+    applyCalendarChanges(r);
+    await IlBorgoCal.push(tasks, forn);
+    log('✓ Calendar sincronizzato');
+  } catch(e) { log('⚠ Errore sync: '+e.message); }
+}
+
+// migrazione una-tantum: scadenza ora obbligatoria, gli item legacy senza
+// data ricevono oggi() e un flag "da confermare" (badge finché non modificati)
+function migrateScadenzeObbligatorie() {
+  let changed = false;
+  tasks.forEach(t => { if (!t.scadenza) { t.scadenza = oggi(); t.scadNonConfermata = true; changed = true; } });
+  forn.forEach(f  => { if (!f.scadenza) { f.scadenza = oggi(); f.scadNonConfermata = true; changed = true; } });
+  if (changed) {
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+    localStorage.setItem('forn',  JSON.stringify(forn));
+  }
 }
 
 // wrapper per gli onclick esistenti nella tab Sync
@@ -984,148 +1081,9 @@ async function syncFromSheets() {
   } catch(e){ log('Errore importazione: '+e.message); }
 }
 
-// ═══════════════════════════════════
-// CALENDAR SYNC
-// ═══════════════════════════════════
-async function syncCalendar() {
-  if(!accessToken){log('⚠ Connetti prima Google');return;}
-  log('Verifica accesso Calendar…');
-  try {
-    const testRes=await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL_ID)}`,{headers:{Authorization:'Bearer '+accessToken}});
-    if(testRes.status===401||testRes.status===403){log('⚠ Token scaduto — rinnovo…');IlBorgoAuth.handleAuthError().catch(()=>{});return;}
-    if(!testRes.ok){const e=await testRes.json();log('⚠ '+(e.error?.message||testRes.status));return;}
-  } catch(e){log('⚠ Impossibile raggiungere Calendar');return;}
-
-  log('Lettura eventi esistenti…');
-  const existing = await getExistingCalEvents(); // tag → eventId
-
-  // Build desired events list with unique tag per item
-  const desired = [
-    ...forn.filter(f=>f.scadenza&&f.stato!=='pagato').map(f=>({
-      tag: `forn-${f.id}`,
-      title: `💳 ${f.nome} — ${eur(f.importo)}`,
-      date: f.scadenza,
-      desc: `Fornitore ${AREE[f.area]?.label||f.area}. ${f.nota||''}`.trim()
-    })),
-    ...tasks.filter(t=>t.scadenza&&!t.done).map(t=>({
-      tag: `task-${t.id}`,
-      title: `📋 ${t.testo}`,
-      date: t.scadenza,
-      desc: `${AREE[t.area]?.label||t.area} · Priorità: ${t.priorita}. ${t.note||''}`.trim()
-    })),
-  ];
-
-  // Also delete events for completed/paid items that are still on calendar
-  const desiredTags = new Set(desired.map(d=>d.tag));
-  let created=0, updated=0, deleted=0, errors=0;
-
-  // Delete orphaned events (task done or forn pagato but still on calendar)
-  for(const [tag, evId] of Object.entries(existing)){
-    if(!desiredTags.has(tag)){
-      try { await deleteCalEvent(evId); deleted++; } catch(e){ errors++; }
-    }
-  }
-
-  // Create or update desired events
-  for(const item of desired){
-    try {
-      if(existing[item.tag]){
-        // Event exists — update it (handles date/title changes)
-        await updateCalEvent(existing[item.tag], item.title, item.date, item.desc, item.tag);
-        updated++;
-      } else {
-        // New event
-        await createCalEvent(item.title, item.date, item.desc, item.tag);
-        created++;
-      }
-    } catch(e){ errors++; }
-  }
-
-  const parts = [];
-  if(created) parts.push(`${created} creati`);
-  if(updated) parts.push(`${updated} aggiornati`);
-  if(deleted) parts.push(`${deleted} rimossi`);
-  if(errors)  parts.push(`⚠ ${errors} errori`);
-  log('✓ Calendar: ' + (parts.length ? parts.join(' · ') : 'nessuna modifica'));
-}
-
-// Unique tag embedded in every event description to identify app-managed events
-function calTag(id) { return `ILBORGO_ID:${id}`; }
-function extractTag(desc) {
-  if (!desc) return null;
-  const match = desc.match(/ILBORGO_ID:([A-Za-z0-9_-]+)/);
-  return match ? match[1] : null;
-}
-
-async function getExistingCalEvents() {
-  // Fetch ALL app-managed events from calendar, paginate if needed
-  const map = {};
-  try {
-    let pageToken = null;
-    do {
-      let url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL_ID)}/events?maxResults=250&singleEvents=true&orderBy=startTime`;
-      if (pageToken) url += `&pageToken=${pageToken}`;
-      const res = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
-      const data = await res.json();
-      (data.items || []).forEach(ev => {
-        const tag = extractTag(ev.description || '');
-        if (tag) {
-          if (map[tag]) {
-            // Duplicate found — mark older one for deletion
-            map['__dup__' + ev.id] = ev.id;
-          } else {
-            map[tag] = ev.id;
-          }
-        }
-      });
-      pageToken = data.nextPageToken || null;
-    } while (pageToken);
-  } catch(e) { console.error('getExistingCalEvents error:', e); }
-  return map;
-}
-
-async function createCalEvent(summary, date, description, tag) {
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL_ID)}/events`;
-  // Tag is appended inline so regex can always find it
-  const fullDesc = (description ? description + ' ' : '') + calTag(tag);
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      summary, description: fullDesc,
-      start: { date }, end: { date },
-      reminders: { useDefault: false, overrides: [{ method:'popup', minutes:480 }, { method:'popup', minutes:1440 }] }
-    })
-  });
-  if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || 'Errore'); }
-}
-
-async function updateCalEvent(eventId, summary, date, description, tag) {
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL_ID)}/events/${eventId}`;
-  const fullDesc = (description ? description + ' ' : '') + calTag(tag);
-  await fetch(url, {
-    method: 'PUT',
-    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      summary, description: fullDesc,
-      start: { date }, end: { date },
-      reminders: { useDefault: false, overrides: [{ method:'popup', minutes:480 }, { method:'popup', minutes:1440 }] }
-    })
-  });
-}
-
-async function deleteCalEvent(eventId) {
-  await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL_ID)}/events/${eventId}`, {
-    method: 'DELETE',
-    headers: { Authorization: 'Bearer ' + accessToken }
-  });
-}
-
 function saveConfig(){
   SHEET_ID=document.getElementById('cfg-sheet-id').value.trim();
-  CAL_ID=document.getElementById('cfg-cal-id').value.trim();
   localStorage.setItem('cfg_sheet_id',SHEET_ID);
-  localStorage.setItem('cfg_cal_id',CAL_ID);
   log('✓ Configurazione salvata');
 }
 
@@ -1134,10 +1092,19 @@ function log(msg){const el=document.getElementById('sync-log');if(el){el.textCon
 // ═══════════════════════════════════
 // TASK ACTIONS
 // ═══════════════════════════════════
+function markInvalid(el){
+  if(!el) return;
+  el.style.borderColor='#B83A3A';
+  el.focus();
+  setTimeout(()=>{ el.style.borderColor=''; }, 1600);
+}
+
 function saveTask(){
   const testo=document.getElementById('t-testo').value.trim(); if(!testo) return;
+  const scadEl=document.getElementById('t-scadenza');
+  if(!scadEl.value){ markInvalid(scadEl); return; }
   const maxOrd=tasks.length>0?Math.max(...tasks.map(t=>t.ord||0))+1:0;
-  tasks.push({id:nextId++,area:document.getElementById('t-area').value,testo,priorita:document.getElementById('t-priorita').value,scadenza:document.getElementById('t-scadenza').value,note:document.getElementById('t-note').value.trim(),done:false,ord:maxOrd});
+  tasks.push({id:nextId++,area:document.getElementById('t-area').value,testo,priorita:document.getElementById('t-priorita').value,scadenza:scadEl.value,note:document.getElementById('t-note').value.trim(),done:false,ord:maxOrd});
   persist();
   document.getElementById('t-testo').value=''; document.getElementById('t-note').value=''; document.getElementById('t-scadenza').value='';
   document.getElementById('task-form').style.display='none';
@@ -1156,10 +1123,12 @@ function saveForn(){
   const nome=document.getElementById('f-nome').value.trim();
   const imp=parseFloat(document.getElementById('f-importo').value);
   if(!nome||isNaN(imp)) return;
+  const scadEl=document.getElementById('f-scadenza');
+  if(!scadEl.value){ markInvalid(scadEl); return; }
   const maxOrd=forn.length>0?Math.max(...forn.map(f=>f.ord||0))+1:0;
-  forn.push({id:nextId++,area:document.getElementById('f-area').value,nome,importo:imp,scadenza:document.getElementById('f-scadenza').value,stato:'da_pagare',nota:document.getElementById('f-nota').value.trim(),ord:maxOrd});
+  forn.push({id:nextId++,area:document.getElementById('f-area').value,nome,importo:imp,scadenza:scadEl.value,stato:'da_pagare',nota:document.getElementById('f-nota').value.trim(),ord:maxOrd});
   persist();
-  document.getElementById('f-nome').value=''; document.getElementById('f-importo').value=''; document.getElementById('f-nota').value='';
+  document.getElementById('f-nome').value=''; document.getElementById('f-importo').value=''; document.getElementById('f-nota').value=''; scadEl.value='';
   document.getElementById('forn-form').style.display='none';
   renderAll();
 }
@@ -1259,6 +1228,7 @@ function renderTasks(){
           ${gg!==null?`<span style="font-size:11px;color:${gg<0?'#C87878':gg<=3?'#C8A060':'#888'};font-family:var(--mono)">${gg<0?`scad. ${-gg}gg fa`:gg===0?'oggi':`${gg}gg`}</span>`:''}
           ${t.note?`<span style="font-size:11px;color:var(--text3)">📝 ${escHtml(t.note)}</span>`:''}
           ${t.quad?`<span style="font-size:10px;color:var(--text3);font-family:var(--mono);border:1px solid var(--border);padding:1px 6px;border-radius:8px">${QUADS[t.quad]?.icon} matrice</span>`:''}
+          ${t.scadNonConfermata?badgeHtml('data da confermare','#B83A3A'):''}
         </div>
       </div>
       <div class="task-actions">
@@ -1331,6 +1301,7 @@ function renderFornitori(){
         <div class="forn-meta">
           <span style="font-size:11px;color:${a.color}">${a.icon} ${a.label}</span>
           ${f.nota?`<span style="font-size:11px;color:var(--text3)">📄 ${escHtml(f.nota)}</span>`:''}
+          ${f.scadNonConfermata?badgeHtml('data da confermare','#B83A3A'):''}
         </div>
       </div>
       <div class="forn-right">
@@ -1593,8 +1564,11 @@ function renderAll(){
 // ═══════════════════════════════════
 window.addEventListener('load',()=>{
   document.getElementById('cfg-sheet-id').value=SHEET_ID;
-  document.getElementById('cfg-cal-id').value=CAL_ID;
+  document.getElementById('cal-map-info').innerHTML=Object.entries(AREE)
+    .map(([k,a])=>`${a.icon} ${a.label}: ${ILBORGO_CONFIG.CALENDARS[k]||'<span style="color:#B83A3A">non configurato</span>'}`)
+    .join('<br>');
   areaSelectOpts('t-area'); areaSelectOpts('f-area');
+  migrateScadenzeObbligatorie();
   IlBorgoAuth.onChange(onAuthChange);
   if(typeof gapi!=='undefined') initGapi();
   else setTimeout(()=>{if(typeof gapi!=='undefined') initGapi();},1500);
