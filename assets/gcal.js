@@ -27,7 +27,25 @@
   var API = 'https://www.googleapis.com/calendar/v3';
   var SNAP_KEY = 'ilb_gcal_snap';
   var TOKEN_PREFIX = 'ilb_gcal_synctoken_';
+  var ADOPT_KEY = 'ilb_adopt_external';
   var POLL_MS = 60000;
+
+  // L'adozione di eventi NON creati dall'app è OPT-IN e spenta di default:
+  // i calendari potrebbero non essere dedicati (eventi personali, ricorrenze…).
+  function adoptEnabled() {
+    try { return localStorage.getItem(ADOPT_KEY) === '1'; } catch (e) { return false; }
+  }
+  // Filtro prudente per gli eventi adottabili quando l'adozione è attiva.
+  function adoptable(ev) {
+    if (ev.recurringEventId || ev.recurrence) return false;   // niente ricorrenze
+    if (ev.attendees && ev.attendees.length) return false;    // niente eventi con invitati
+    if (ev.transparency === 'transparent') return false;      // niente eventi "libero"
+    if (!ev.start || !ev.start.date) return false;            // solo all-day
+    var t = new Date(ev.start.date + 'T00:00:00Z').getTime();
+    var now = Date.now();
+    if (t < now - 90 * 864e5 || t > now + 400 * 864e5) return false; // finestra ±
+    return true;
+  }
 
   // ── fetch autenticato, con un retry dopo rinnovo su 401/403 ─────────
   function apiFetch(url, opts, _retried) {
@@ -254,10 +272,9 @@
           } else if (p.ilb_type === 'forn') {
             var id2 = key ? parseInt(key.slice(2), 10) : (parseInt(p.ilb_id, 10) || Date.now());
             upserts.push({ kind: 'forn', item: parseEventToForn(ev, area, id2), eventId: ev.id });
-          } else if (ev.start && ev.start.date && !key && !isLegacyManaged(ev)) {
-            // adozione: evento creato a mano in un calendario d'area (nessun tag).
-            // Gli eventi del vecchio sistema (ILBORGO_ID:) sono ignorati: verranno
-            // rimossi dalla pulizia, non trasformati in duplicati.
+          } else if (adoptEnabled() && !key && !isLegacyManaged(ev) && adoptable(ev)) {
+            // adozione (opt-in): evento creato a mano in un calendario d'area,
+            // senza tag, non ricorrente, all-day, entro una finestra ragionevole.
             var newId = Date.now() + Math.floor(Math.random() * 1000);
             upserts.push({ kind: 'task', item: parseEventToTask(ev, area, newId), eventId: ev.id, adopt: true });
           }
@@ -363,6 +380,8 @@
 
   w.IlBorgoCal = {
     isConfigured: calendarsReady,
+    adoptEnabled: adoptEnabled,
+    setAdopt: function (on) { try { localStorage.setItem(ADOPT_KEY, on ? '1' : '0'); } catch (e) {} },
     push: function (tasksArr, fornArr) { return serialized(function () { return push(tasksArr, fornArr); }); },
     poll: function () { return serialized(function () { return poll(); }); },
     purgeAll: function () { return serialized(function () { return purgeAll(); }); },

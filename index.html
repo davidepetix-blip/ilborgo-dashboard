@@ -391,6 +391,10 @@ button{cursor:pointer;font-family:var(--sans);}
       <div style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:22px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
         <p style="font-size:12px;color:var(--text2);line-height:1.8;font-family:var(--mono)" id="cal-map-info"></p>
         <p style="font-size:11px;color:var(--text3);line-height:1.7;margin-top:10px">I micro-passaggi vivono in 3 liste Google Tasks ("Il Borgo · …"), create in automatico. I passi con scadenza compaiono anche in Google Calendar.</p>
+        <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12px;color:var(--text2);cursor:pointer">
+          <input type="checkbox" id="cfg-adopt" onchange="IlBorgoCal.setAdopt(this.checked)" style="width:15px;height:15px;accent-color:var(--gold)"/>
+          Importa anche gli eventi creati a mano nei calendari (usa solo se i calendari sono dedicati all'app)
+        </label>
       </div>
       <div class="section-title">Configurazione backup (Sheets)</div>
       <div style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:22px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
@@ -1705,6 +1709,7 @@ window.addEventListener('load',()=>{
   document.getElementById('cal-map-info').innerHTML=Object.entries(AREE)
     .map(([k,a])=>`${a.icon} ${a.label}: ${ILBORGO_CONFIG.CALENDARS[k]||'<span style="color:#B83A3A">non configurato</span>'}`)
     .join('<br>');
+  document.getElementById('cfg-adopt').checked = IlBorgoCal.adoptEnabled();
   areaSelectOpts('t-area'); areaSelectOpts('f-area');
   migrateScadenzeObbligatorie();
   IlBorgoAuth.onChange(onAuthChange);
