@@ -23,13 +23,12 @@
     // Dalla Parte 2 in poi retrocede a backup/log secondario.
     SHEET_ID_MAIN: '1tuO4m5MABDGmLb63_42sV3ikWXsO_eexLWg6Vx0eBf0',
 
-    // Parte 2 — un calendario per area. ID reali da inserire quando disponibili
-    // (i 3 calendari esistono già lato utente). Finché vuoti, il layer Calendar
-    // resta inattivo e la dashboard continua a funzionare su Sheets.
+    // Parte 2 — un calendario Google per area (sorgente primaria).
+    // architettura coincide col vecchio CAL_ID_LEGACY.
     CALENDARS: {
-      borgo_admin:  '',
-      affitti:      '',
-      architettura: ''
+      borgo_admin:  'p5bjseovvrcsfttn87e3drgh78@group.calendar.google.com',
+      affitti:      'tasuud8409bhoqilm97eh7foj8@group.calendar.google.com',
+      architettura: 'c5glbck4juqq4f9r5k6d13tbl4@group.calendar.google.com'
     },
 
     // Calendar ID singolo usato dalla vecchia syncCalendar() (deprecato in Parte 2).

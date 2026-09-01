@@ -148,10 +148,12 @@
       if (Date.now() > c.exp - SKEW_MS) requestToken('none').catch(function () {});
       return;
     }
-    // nessun token in cache: tentativo silenzioso una volta (nessun popup con prompt:none),
-    // poi il gate. Evita di aprire finestre di login all'avvio.
-    showGate('loading');
-    requestToken('none').catch(function () { showGate('login'); });
+    // Nessun token: mostra il gate senza alcuna richiesta automatica.
+    // Il token client GIS (modello token) apre comunque una finestra quando non
+    // c'è sessione, quindi la prima acquisizione deve partire da un gesto utente
+    // (bottone del gate). Il rinnovo silenzioso (scheduleRefresh) parte solo
+    // quando una sessione è già stata stabilita.
+    showGate('login');
   }
 
   function signOut() {
@@ -233,8 +235,11 @@
     setAppHidden(false);
   }
   function setAppHidden(hidden) {
+    // Nota: il CSS base imposta #app{visibility:hidden}; qui serve un valore
+    // esplicito ('visible'), non stringa vuota — altrimenti lo stile inline
+    // svuotato ricade sulla regola del foglio di stile e resta nascosto.
     var app = d.getElementById('app');
-    if (app) app.style.visibility = hidden ? 'hidden' : '';
+    if (app) app.style.visibility = hidden ? 'hidden' : 'visible';
     // fallback se la pagina non usa #app
     if (d.body) d.body.setAttribute('data-ilb-auth', hidden ? 'locked' : 'open');
   }
