@@ -311,6 +311,7 @@ button{cursor:pointer;font-family:var(--sans);}
           <div><div class="form-label">Area</div><select class="sel" id="t-area"></select></div>
           <div><div class="form-label">Priorità</div><select class="sel" id="t-priorita"><option value="urgente">🔥 Urgente</option><option value="normale" selected>⚡ Normale</option><option value="bassa">🌱 Bassa</option></select></div>
           <div><div class="form-label">Scadenza *</div><input class="inp" type="date" id="t-scadenza" required/></div>
+          <div style="grid-column:1/-1"><input class="inp" id="t-progetto" placeholder="Progetto / pratica (opzionale)"/></div>
           <div style="grid-column:1/-1"><input class="inp" id="t-note" placeholder="Note (opzionale)"/></div>
         </div>
         <button class="btn-gold" onclick="saveTask()">Aggiungi</button>
@@ -386,9 +387,10 @@ button{cursor:pointer;font-family:var(--sans);}
         <button class="btn-gold" id="btn-notif" onclick="requestNotifPermission()">Attiva notifiche</button>
         <div id="notif-status" style="font-size:11px;color:var(--text3);margin-top:8px;font-family:var(--mono)"></div>
       </div>
-      <div class="section-title">Calendari (sorgente primaria)</div>
+      <div class="section-title">Calendari &amp; Tasks (sorgente primaria)</div>
       <div style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:22px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
         <p style="font-size:12px;color:var(--text2);line-height:1.8;font-family:var(--mono)" id="cal-map-info"></p>
+        <p style="font-size:11px;color:var(--text3);line-height:1.7;margin-top:10px">I micro-passaggi vivono in 3 liste Google Tasks ("Il Borgo · …"), create in automatico. I passi con scadenza compaiono anche in Google Calendar.</p>
       </div>
       <div class="section-title">Configurazione backup (Sheets)</div>
       <div style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:22px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
@@ -442,6 +444,7 @@ button{cursor:pointer;font-family:var(--sans);}
 <script src="assets/config.js"></script>
 <script src="assets/auth.js"></script>
 <script src="assets/gcal.js"></script>
+<script src="assets/gtasks.js"></script>
 <script>
 // ═══════════════════════════════════
 // CONFIG
@@ -479,6 +482,8 @@ const STATO_PAG  = { da_pagare:{label:'Da pagare',color:'#B83A3A'}, in_scadenza:
 // ═══════════════════════════════════
 // matrixExtras: tasks added directly in the matrix (not in main task list)
 let matrixExtras = JSON.parse(localStorage.getItem('matrixExtras')||'[]');
+// microSteps: micro-passaggi (Google Tasks). {id(googleTaskId), parentId(taskLocale), area, testo, done}
+let microSteps = JSON.parse(localStorage.getItem('ilb_microsteps')||'[]');
 let tasks = JSON.parse(localStorage.getItem('tasks')||'null') || [
   {id:1,area:'borgo_admin',testo:'Rinnovo contratto gestione immobile Comune',priorita:'urgente',note:'Scade il 15 del mese',scadenza:'',done:false,ord:0},
   {id:2,area:'affitti',    testo:'Verifica check-in appartamento Via Roma 4', priorita:'urgente',note:'Ospite arriva venerdì',scadenza:'',done:false,ord:1},
@@ -507,6 +512,7 @@ function persist() {
   localStorage.setItem('forn',  JSON.stringify(forn));
   localStorage.setItem('notes', JSON.stringify(notes));
   localStorage.setItem('matrixExtras', JSON.stringify(matrixExtras));
+  localStorage.setItem('ilb_microsteps', JSON.stringify(microSteps));
   // Debounced write a Calendar (sorgente primaria). Sheets resta un backup
   // secondario, aggiornato subito dopo un push Calendar riuscito.
   if (accessToken) {
@@ -675,10 +681,73 @@ function openEditTask(id) {
         </select>
       </div>
       <div><div class="form-label">Scadenza *</div><input class="inp" type="date" id="ed-scadenza" value="${t.scadenza||''}" required/></div>
+      <div><div class="form-label">Progetto / pratica</div><input class="inp" id="ed-progetto" value="${escHtml(t.progetto||'')}" placeholder="opzionale"/></div>
       <div><div class="form-label">Note</div><input class="inp" id="ed-note" value="${escHtml(t.note||'')}"/></div>
+    </div>
+    <div id="microsteps-box" style="margin-top:18px;border-top:1.5px solid var(--border);padding-top:14px">
+      <div class="form-label" style="display:flex;justify-content:space-between;align-items:center">
+        <span>Micro-passaggi</span>
+        <span style="color:var(--text3);text-transform:none;letter-spacing:0">sincronizzati con Google Tasks</span>
+      </div>
+      <div id="microsteps-list" style="display:flex;flex-direction:column;gap:5px;margin:8px 0"></div>
+      <div style="display:flex;gap:6px">
+        <input class="inp" id="ms-new" placeholder="Nuovo passo…" style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();addMicroStep()}"/>
+        <button class="btn-gold" style="padding:9px 16px" onclick="addMicroStep()">+</button>
+      </div>
+      <div id="ms-log" style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:6px;min-height:12px"></div>
     </div>`;
   areaSelectOpts('ed-area', t.area);
+  renderMicroSteps(id);
   document.getElementById('edit-modal').style.display = 'flex';
+}
+
+// ── MICRO-PASSAGGI (edit modal) ──
+function renderMicroSteps(taskId) {
+  const box = document.getElementById('microsteps-list');
+  if (!box) return;
+  const steps = stepsForTask(taskId);
+  if (!steps.length) { box.innerHTML = '<div style="font-size:12px;color:var(--text3);font-style:italic">Nessun micro-passaggio.</div>'; return; }
+  box.innerHTML = steps.map(s => `
+    <div style="display:flex;align-items:center;gap:8px;background:var(--bg3);border:1.5px solid var(--border);border-radius:7px;padding:7px 10px">
+      <input type="checkbox" ${s.done?'checked':''} onchange="toggleMicroStep('${s.id}',this.checked)" style="width:16px;height:16px;flex-shrink:0;accent-color:var(--green)"/>
+      <span style="flex:1;font-size:13px;${s.done?'text-decoration:line-through;color:var(--text3)':''}">${escHtml(s.testo)}</span>
+      <button class="btn-icon" style="padding:2px 7px" onclick="deleteMicroStep('${s.id}')" title="Rimuovi">✕</button>
+    </div>`).join('');
+}
+
+function msLog(msg){ const el=document.getElementById('ms-log'); if(el){ el.textContent=msg; setTimeout(()=>{if(el.textContent===msg)el.textContent='';},4000); } }
+
+async function addMicroStep() {
+  if (!editTarget || editTarget.type !== 'task') return;
+  const inp = document.getElementById('ms-new');
+  const testo = inp.value.trim(); if (!testo) return;
+  const t = tasks.find(x => x.id === editTarget.id); if (!t) return;
+  if (!IlBorgoTasks.isConfigured() && !accessToken) { msLog('⚠ Connetti Google'); return; }
+  inp.value = ''; msLog('salvataggio…');
+  try {
+    const step = await IlBorgoTasks.addStep(t, testo);
+    microSteps.push(step);
+    localStorage.setItem('ilb_microsteps', JSON.stringify(microSteps));
+    renderMicroSteps(t.id); renderTasks(); msLog('✓');
+  } catch(e) { msLog('⚠ ' + (e.message||'errore')); console.error('addMicroStep', e); }
+}
+
+async function toggleMicroStep(stepId, done) {
+  const s = microSteps.find(x => x.id === stepId); if (!s) return;
+  s.done = done;
+  localStorage.setItem('ilb_microsteps', JSON.stringify(microSteps));
+  renderTasks();
+  try { await IlBorgoTasks.toggleStep(s, done); }
+  catch(e) { msLog('⚠ ' + (e.message||'errore')); console.error('toggleMicroStep', e); }
+}
+
+async function deleteMicroStep(stepId) {
+  const s = microSteps.find(x => x.id === stepId); if (!s) return;
+  microSteps = microSteps.filter(x => x.id !== stepId);
+  localStorage.setItem('ilb_microsteps', JSON.stringify(microSteps));
+  renderMicroSteps(s.parentId); renderTasks();
+  try { await IlBorgoTasks.deleteStep(s); }
+  catch(e) { console.error('deleteMicroStep', e); }
 }
 
 function openEditForn(id) {
@@ -707,6 +776,7 @@ function saveEdit() {
   const scadEl = document.getElementById('ed-scadenza');
   if (!scadEl.value) { markInvalid(scadEl); return; }
   if (editTarget.type === 'task') {
+    const before = tasks.find(t => t.id===editTarget.id);
     tasks = tasks.map(t => t.id===editTarget.id ? {
       ...t,
       testo:    document.getElementById('ed-testo').value.trim(),
@@ -714,8 +784,15 @@ function saveEdit() {
       priorita: document.getElementById('ed-priorita').value,
       scadenza: scadEl.value,
       note:     document.getElementById('ed-note').value.trim(),
+      progetto: document.getElementById('ed-progetto').value.trim(),
       scadNonConfermata: false,
     } : t);
+    const after = tasks.find(t => t.id===editTarget.id);
+    // se i passi esistono e area/scadenza/progetto sono cambiati, riallineali su Tasks
+    if (before && after && stepsForTask(after.id).length &&
+        (before.area!==after.area || before.scadenza!==after.scadenza || (before.progetto||'')!==(after.progetto||''))) {
+      IlBorgoTasks.syncStepsForTask(after).then(()=>IlBorgoTasks.poll()).then(applyStepChanges).catch(e=>console.error('syncStepsForTask',e));
+    }
   } else {
     forn = forn.map(f => f.id===editTarget.id ? {
       ...f,
@@ -922,7 +999,26 @@ async function initialCalendarSync() {
     setSyncIndicator('error');
   }
   IlBorgoCal.startAutoSync(applyCalendarChanges);
+  // Parte 3 — micro-passaggi (Google Tasks)
+  try {
+    const rs = await IlBorgoTasks.poll();
+    applyStepChanges(rs);
+  } catch(e) { console.error('initial tasks sync error:', e); }
+  IlBorgoTasks.startAutoSync(applyStepChanges);
 }
+
+// Sostituisce la cache locale dei micro-passaggi con quanto letto da Google Tasks.
+function applyStepChanges(result) {
+  if (!result || !result.steps) return;
+  const sig = s => JSON.stringify(s.map(x=>[x.id,x.parentId,x.testo,x.done]).sort());
+  if (sig(result.steps) === sig(microSteps)) return; // nessun cambiamento
+  microSteps = result.steps;
+  localStorage.setItem('ilb_microsteps', JSON.stringify(microSteps));
+  renderAll();
+  if (editTarget && editTarget.type === 'task') renderMicroSteps(editTarget.id);
+}
+
+function stepsForTask(id){ return microSteps.filter(s => s.parentId === id); }
 
 // Applica gli upsert/delete letti da Calendar allo stato locale (poll → app).
 function applyCalendarChanges(result) {
@@ -957,12 +1053,13 @@ function applyCalendarChanges(result) {
 async function manualCalendarSync() {
   if (!accessToken) { log('⚠ Connetti prima Google'); return; }
   if (!IlBorgoCal.isConfigured()) { log('⚠ Calendar non configurato'); return; }
-  log('Sincronizzazione Calendar…');
+  log('Sincronizzazione Calendar + Tasks…');
   try {
     const r = await IlBorgoCal.poll();
     applyCalendarChanges(r);
     await IlBorgoCal.push(tasks, forn);
-    log('✓ Calendar sincronizzato');
+    try { applyStepChanges(await IlBorgoTasks.poll()); } catch(e) { console.error('tasks sync', e); }
+    log('✓ Sincronizzato');
   } catch(e) { log('⚠ Errore sync: '+e.message); }
 }
 
@@ -1108,14 +1205,19 @@ function saveTask(){
   const scadEl=document.getElementById('t-scadenza');
   if(!scadEl.value){ markInvalid(scadEl); return; }
   const maxOrd=tasks.length>0?Math.max(...tasks.map(t=>t.ord||0))+1:0;
-  tasks.push({id:nextId++,area:document.getElementById('t-area').value,testo,priorita:document.getElementById('t-priorita').value,scadenza:scadEl.value,note:document.getElementById('t-note').value.trim(),done:false,ord:maxOrd});
+  tasks.push({id:nextId++,area:document.getElementById('t-area').value,testo,priorita:document.getElementById('t-priorita').value,scadenza:scadEl.value,note:document.getElementById('t-note').value.trim(),progetto:document.getElementById('t-progetto').value.trim(),done:false,ord:maxOrd});
   persist();
-  document.getElementById('t-testo').value=''; document.getElementById('t-note').value=''; document.getElementById('t-scadenza').value='';
+  document.getElementById('t-testo').value=''; document.getElementById('t-note').value=''; document.getElementById('t-scadenza').value=''; document.getElementById('t-progetto').value='';
   document.getElementById('task-form').style.display='none';
   renderAll();
 }
 function markTaskDone(id){tasks=tasks.map(t=>t.id===id?{...t,done:true}:t);if(focusTaskId===id)focusTaskId=null;persist();renderAll();}
-function deleteTask(id){tasks=tasks.filter(t=>t.id!==id);if(focusTaskId===id)focusTaskId=null;persist();renderAll();}
+function deleteTask(id){
+  // rimuovi anche i micro-passaggi collegati (best effort su Google Tasks)
+  stepsForTask(id).forEach(s => { IlBorgoTasks.deleteStep(s).catch(()=>{}); });
+  microSteps = microSteps.filter(s => s.parentId !== id);
+  tasks=tasks.filter(t=>t.id!==id);if(focusTaskId===id)focusTaskId=null;persist();renderAll();
+}
 function restoreTask(id){tasks=tasks.map(t=>t.id===id?{...t,done:false}:t);persist();renderAll();}
 function restoreForn(id){forn=forn.map(f=>f.id===id?{...f,stato:'da_pagare'}:f);persist();renderAll();}
 function setFocus(id){focusTaskId=focusTaskId===id?null:id;renderAll();}
@@ -1232,6 +1334,8 @@ function renderTasks(){
           ${gg!==null?`<span style="font-size:11px;color:${gg<0?'#C87878':gg<=3?'#C8A060':'#888'};font-family:var(--mono)">${gg<0?`scad. ${-gg}gg fa`:gg===0?'oggi':`${gg}gg`}</span>`:''}
           ${t.note?`<span style="font-size:11px;color:var(--text3)">📝 ${escHtml(t.note)}</span>`:''}
           ${t.quad?`<span style="font-size:10px;color:var(--text3);font-family:var(--mono);border:1px solid var(--border);padding:1px 6px;border-radius:8px">${QUADS[t.quad]?.icon} matrice</span>`:''}
+          ${t.progetto?`<span style="font-size:11px;color:var(--purple)">📁 ${escHtml(t.progetto)}</span>`:''}
+          ${(()=>{const st=stepsForTask(t.id);return st.length?`<span style="font-size:11px;color:var(--text3);font-family:var(--mono)">☑ ${st.filter(s=>s.done).length}/${st.length}</span>`:'';})()}
           ${t.scadNonConfermata?badgeHtml('data da confermare','#B83A3A'):''}
         </div>
       </div>
