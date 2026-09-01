@@ -37,7 +37,9 @@
     var headers = { Authorization: 'Bearer ' + tok };
     for (var k in (opts.headers || {})) headers[k] = opts.headers[k];
     return fetch(url, { method: opts.method, headers: headers, body: opts.body }).then(function (res) {
-      if ((res.status === 401 || res.status === 403) && !_retried) {
+      // solo 401 = token non valido → rinnovo. I 403 (rate limit, API non
+      // abilitata, permessi) NON devono buttare fuori l'utente.
+      if (res.status === 401 && !_retried) {
         return w.IlBorgoAuth.handleAuthError().then(function () { return apiFetch(url, opts, true); });
       }
       if (res.status === 204) return {};
@@ -120,6 +122,9 @@
       progetto: p.progetto || ''
     };
   }
+  // riconosce gli eventi del VECCHIO sistema di sync (tag testuale nella description)
+  function isLegacyManaged(ev) { return /ILBORGO_ID:/.test((ev && ev.description) || ''); }
+
   function parseEventToForn(ev, area, localId) {
     var p = (ev.extendedProperties && ev.extendedProperties.private) || {};
     return {
@@ -249,8 +254,10 @@
           } else if (p.ilb_type === 'forn') {
             var id2 = key ? parseInt(key.slice(2), 10) : (parseInt(p.ilb_id, 10) || Date.now());
             upserts.push({ kind: 'forn', item: parseEventToForn(ev, area, id2), eventId: ev.id });
-          } else if (ev.start && ev.start.date && !key) {
-            // adozione: evento creato fuori app in un calendario d'area
+          } else if (ev.start && ev.start.date && !key && !isLegacyManaged(ev)) {
+            // adozione: evento creato a mano in un calendario d'area (nessun tag).
+            // Gli eventi del vecchio sistema (ILBORGO_ID:) sono ignorati: verranno
+            // rimossi dalla pulizia, non trasformati in duplicati.
             var newId = Date.now() + Math.floor(Math.random() * 1000);
             upserts.push({ kind: 'task', item: parseEventToTask(ev, area, newId), eventId: ev.id, adopt: true });
           }
@@ -305,6 +312,47 @@
     });
   }
 
+  // ── PURGE: rimuove tutti gli eventi gestiti dall'app (nuovi + legacy) ──
+  function purgeCal(calId) {
+    var ids = [];
+    function collect(pageToken) {
+      var params = { maxResults: 250, singleEvents: true };
+      if (pageToken) params.pageToken = pageToken;
+      return listEventsPage(calId, params).then(function (data) {
+        (data.items || []).forEach(function (ev) {
+          var p = (ev.extendedProperties && ev.extendedProperties.private) || {};
+          if (p.ilb_type || isLegacyManaged(ev)) ids.push(ev.id);
+        });
+        if (data.nextPageToken) return collect(data.nextPageToken);
+      });
+    }
+    return collect(null).then(function () {
+      var c = Promise.resolve(), count = 0;
+      ids.forEach(function (id) {
+        c = c.then(function () {
+          return apiFetch(API + '/calendars/' + encodeURIComponent(calId) + '/events/' + encodeURIComponent(id), { method: 'DELETE' })
+            .then(function () { count++; })
+            .catch(function (e) { if (e.status !== 404 && e.status !== 410) console.error('[gcal] purge', e); });
+        });
+      });
+      return c.then(function () { return count; });
+    });
+  }
+  function purgeAll() {
+    if (!calendarsReady()) return Promise.resolve({ deleted: 0 });
+    var areas = Object.keys(CFG.CALENDARS);
+    var deleted = 0;
+    var chain = Promise.resolve();
+    areas.forEach(function (area) {
+      chain = chain.then(function () { return purgeCal(calForArea(area)); }).then(function (n) { deleted += n; });
+    });
+    return chain.then(function () {
+      try { localStorage.removeItem(SNAP_KEY); } catch (e) {}
+      areas.forEach(function (a) { try { localStorage.removeItem(TOKEN_PREFIX + a); } catch (e) {} });
+      return { deleted: deleted };
+    });
+  }
+
   // ── serializzazione: push e poll non si accavallano mai ──────────
   var syncChain = Promise.resolve();
   function serialized(fn) {
@@ -317,15 +365,19 @@
     isConfigured: calendarsReady,
     push: function (tasksArr, fornArr) { return serialized(function () { return push(tasksArr, fornArr); }); },
     poll: function () { return serialized(function () { return poll(); }); },
+    purgeAll: function () { return serialized(function () { return purgeAll(); }); },
     startAutoSync: function (onRemote) {
-      function tick() {
+      var last = 0;
+      function tick(force) {
         if (!(w.IlBorgoAuth && w.IlBorgoAuth.isAuthed())) return;
+        if (!force && Date.now() - last < 20000) return; // anti-raffica su visibilitychange
+        last = Date.now();
         w.IlBorgoCal.poll().then(function (r) {
           if ((r.upserts && r.upserts.length) || (r.deletes && r.deletes.length)) onRemote(r);
         }).catch(function (e) { console.error('[gcal] autosync error', e); });
       }
-      setInterval(tick, POLL_MS);
-      d.addEventListener('visibilitychange', function () { if (!d.hidden) tick(); });
+      setInterval(function () { tick(true); }, POLL_MS);
+      d.addEventListener('visibilitychange', function () { if (!d.hidden) tick(false); });
     }
   };
 })(window, document);

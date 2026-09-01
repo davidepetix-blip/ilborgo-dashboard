@@ -130,11 +130,18 @@
   function scheduleRefresh(exp) {
     if (refreshTimer) clearTimeout(refreshTimer);
     var delay = Math.max(15000, exp - Date.now() - SKEW_MS);
-    refreshTimer = setTimeout(function () {
-      requestToken('none').catch(function () {
-        if (!cachedToken()) setAuthed(false);   // rinnovo fallito e token scaduto → gate
-      });
-    }, delay);
+    refreshTimer = setTimeout(runRefresh, delay);
+  }
+  function runRefresh() {
+    requestToken('none').catch(function () {
+      // se il token è ancora valido riprova tra 1 min; se è davvero scaduto → gate
+      if (cachedToken()) {
+        if (refreshTimer) clearTimeout(refreshTimer);
+        refreshTimer = setTimeout(runRefresh, 60000);
+      } else {
+        setAuthed(false);
+      }
+    });
   }
 
   // ── avvio ─────────────────────────────────────────────────────────
@@ -170,7 +177,10 @@
   function handleAuthError() {
     clearToken();
     pushToGapi(null);
-    return requestToken('none').catch(function (e) { setAuthed(false); throw e; });
+    return requestToken('none').catch(function (e) {
+      if (!cachedToken()) setAuthed(false);
+      throw e;
+    });
   }
 
   // ── login gate ────────────────────────────────────────────────────

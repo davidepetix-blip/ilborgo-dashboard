@@ -47,7 +47,9 @@
     var headers = { Authorization: 'Bearer ' + tok };
     for (var k in (opts.headers || {})) headers[k] = opts.headers[k];
     return fetch(url, { method: opts.method, headers: headers, body: opts.body }).then(function (res) {
-      if ((res.status === 401 || res.status === 403) && !_retried) {
+      // solo 401 → rinnovo token. 403 (Tasks API non abilitata, rate limit) NON
+      // deve buttare fuori l'utente.
+      if (res.status === 401 && !_retried) {
         return w.IlBorgoAuth.handleAuthError().then(function () { return apiFetch(url, opts, true); });
       }
       if (res.status === 204) return {};
@@ -217,22 +219,54 @@
     });
   }
 
+  // rimuove tutti i micro-passaggi (task con notes ilb_parent:) dalle 3 liste
+  function purgeAll() {
+    return ensureLists().then(function () {
+      var count = 0;
+      var chain = Promise.resolve();
+      AREAS.forEach(function (area) {
+        var listId = listIdForArea(area);
+        if (!listId) return;
+        chain = chain.then(function () {
+          return apiFetch(API + '/lists/' + encodeURIComponent(listId) +
+            '/tasks?showCompleted=true&showHidden=true&maxResults=100').then(function (data) {
+            var ids = (data.items || []).filter(function (t) { return /ilb_parent:/.test(t.notes || ''); })
+              .map(function (t) { return t.id; });
+            var c = Promise.resolve();
+            ids.forEach(function (id) {
+              c = c.then(function () {
+                return apiFetch(API + '/lists/' + encodeURIComponent(listId) + '/tasks/' + encodeURIComponent(id),
+                  { method: 'DELETE' }).then(function () { count++; }).catch(function () {});
+              });
+            });
+            return c;
+          }).catch(function (e) { console.error('[gtasks] purge area=' + area, e); });
+        });
+      });
+      return chain.then(function () { return { deleted: count }; });
+    });
+  }
+
   w.IlBorgoTasks = {
     ensureLists: ensureLists,
     isConfigured: isConfigured,
+    purgeAll: purgeAll,
     addStep: addStep,
     toggleStep: toggleStep,
     deleteStep: deleteStep,
     syncStepsForTask: syncStepsForTask,
     poll: poll,
     startAutoSync: function (onSteps) {
-      function tick() {
+      var last = 0;
+      function tick(force) {
         if (!(w.IlBorgoAuth && w.IlBorgoAuth.isAuthed())) return;
+        if (!force && Date.now() - last < 20000) return;
+        last = Date.now();
         poll().then(function (r) { if (r.steps) onSteps(r); })
           .catch(function (e) { console.error('[gtasks] autosync error', e); });
       }
-      setInterval(tick, POLL_MS);
-      d.addEventListener('visibilitychange', function () { if (!d.hidden) tick(); });
+      setInterval(function () { tick(true); }, POLL_MS);
+      d.addEventListener('visibilitychange', function () { if (!d.hidden) tick(false); });
     }
   };
 })(window, document);
