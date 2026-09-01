@@ -595,8 +595,12 @@ async function pushToSheets() {
 // ═══════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════
-function oggi()   { return new Date().toISOString().split('T')[0]; }
-function domani() { const d=new Date(); d.setDate(d.getDate()+1); return d.toISOString().split('T')[0]; }
+// Data locale in formato YYYY-MM-DD. NON usare toISOString() qui: converte
+// a UTC e sballa di un giorno nelle ore vicine alla mezzanotte locale nei
+// fusi orari diversi da UTC (bug reale trovato testando gcal.js).
+function ymdLocal(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function oggi()   { return ymdLocal(new Date()); }
+function domani() { const d=new Date(); d.setDate(d.getDate()+1); return ymdLocal(d); }
 function fmtData(d){ if(!d) return '—'; const [y,m,g]=d.split('-'); return `${g}/${m}/${y}`; }
 function ggScad(d){ if(!d) return null; return Math.ceil((new Date(d)-new Date(oggi()))/86400000); }
 function eur(n)   { return '€'+Number(n).toLocaleString('it-IT'); }

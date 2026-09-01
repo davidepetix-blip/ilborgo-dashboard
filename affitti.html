@@ -341,7 +341,9 @@ let prenotazioni = JSON.parse(localStorage.getItem('aff_prenotazioni')|| '[]');
 let incassi      = JSON.parse(localStorage.getItem('aff_incassi')     || '[]');
 
 // ── HELPERS ─────────────────────────────────────────────────────────────────
-function oggi(){ return new Date().toISOString().split('T')[0]; }
+// Data locale YYYY-MM-DD — non toISOString() (converte a UTC, sballa di un
+// giorno vicino alla mezzanotte locale fuori UTC).
+function oggi(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function fmtD(d){ if(!d) return '—'; const [y,m,g]=d.split('-'); return `${g}/${m}/${y}`; }
 function eur(n){ return '€'+Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:0}); }
 function ggScad(d){ if(!d) return null; return Math.ceil((new Date(d)-new Date(oggi()))/86400000); }
