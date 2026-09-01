@@ -409,7 +409,7 @@ button{cursor:pointer;font-family:var(--sans);}
         <button class="btn-ghost" onclick="manualCalendarSync()">📅 Sincronizza Calendar ora</button>
         <button class="btn-ghost" onclick="syncFromSheets()">↓ Importa da Sheets (backup)</button>
         <button class="btn-ghost" onclick="syncToSheets()">↑ Esporta su Sheets (backup)</button>
-        <button class="btn-ghost" style="color:var(--red);border-color:#B83A3A44" onclick="resetSync()">⟳ Ripulisci e ri-sincronizza</button>
+        <button class="btn-ghost" style="color:var(--red);border-color:#B83A3A44" onclick="resetSync()">⟳ Rimuovi attività importate e ripulisci</button>
         <div id="sync-log" style="width:100%;font-size:11px;color:var(--text3);margin-top:8px;font-family:var(--mono)"></div>
       </div>
     </div>
@@ -1068,16 +1068,24 @@ async function manualCalendarSync() {
   } catch(e) { log('⚠ Errore sync: '+e.message); }
 }
 
-// Recupero: rimuove i duplicati importati + azzera e ricrea tutto su Calendar/Tasks.
+// Attività create durante/dopo la migrazione a Calendar (2026-09) hanno ID
+// >= a questa soglia; quelle vere del passato hanno ID più bassi.
+const MIGRAZIONE_CUTOFF_ID = 1785000000000; // ~27 mag 2026
+
+// Recupero: rimuove le attività importate (adottate) + azzera e ricrea tutto su Calendar/Tasks.
 async function resetSync() {
   if (!accessToken) { log('⚠ Connetti prima Google'); return; }
-  if (!confirm('Ripristina la sincronizzazione:\n\n• rimuove dall\'app le attività importate come duplicati (quelle che iniziano con 📋 o 💳)\n• cancella TUTTI gli eventi gestiti dall\'app nei 3 calendari (nuovi e del vecchio sistema) e i micro-passaggi nelle 3 liste Tasks\n• ricrea tutto da capo dallo stato attuale dell\'app\n\nGli eventi/attività che NON sono dell\'app non vengono toccati. Continuare?')) return;
+  const DUP_RE = /^(📋|💳)️?\s/;
+  const daRimuovere = tasks.filter(t => Number(t.id) >= MIGRAZIONE_CUTOFF_ID || DUP_RE.test(t.testo || ''));
+  const daTenere    = tasks.filter(t => !(Number(t.id) >= MIGRAZIONE_CUTOFF_ID || DUP_RE.test(t.testo || '')));
+  if (!confirm(`Ripristino sincronizzazione:\n\n• rimuovo ${daRimuovere.length} attività importate, mantengo ${daTenere.length} attività vere\n• cancello TUTTI gli eventi gestiti dall'app nei calendari e i micro-passaggi nelle liste Tasks\n• ricreo tutto pulito dai dati mantenuti\n\nEventi/attività NON dell'app non vengono toccati. Continuare?`)) return;
   setSyncIndicator('loading');
   log('Ripristino in corso… (può richiedere qualche secondo)');
-  const before = tasks.length;
-  const DUP_RE = /^(📋|💳)️?\s/; // testo che inizia con 📋 o 💳 = duplicato importato
-  tasks = tasks.filter(t => !DUP_RE.test(t.testo || ''));
-  const removed = before - tasks.length;
+  tasks = daTenere;
+  const removed = daRimuovere.length;
+  // dedup fornitori per id (artefatto di un vecchio bug)
+  const visti = new Set();
+  forn = forn.filter(f => { const k = String(f.id); if (visti.has(k)) return false; visti.add(k); return true; });
   microSteps = [];
   try {
     const cr = await IlBorgoCal.purgeAll();
@@ -1090,7 +1098,7 @@ async function resetSync() {
     if (gapiReady) pushToSheets().catch(()=>{});
     renderAll();
     setSyncIndicator('saved');
-    log(`✓ Ripristino completato — ${removed} duplicati rimossi, ${cr.deleted} eventi + ${tr.deleted} passi ripuliti`);
+    log(`✓ Ripristino completato — ${removed} attività importate rimosse, ${cr.deleted} eventi + ${tr.deleted} passi ripuliti`);
   } catch(e) {
     setSyncIndicator('error');
     log('⚠ Errore ripristino: ' + (e.message || e));
