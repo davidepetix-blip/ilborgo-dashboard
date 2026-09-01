@@ -42,7 +42,7 @@ input::placeholder,textarea::placeholder{color:var(--text3);}
 select option{background:#fff;}
 button{cursor:pointer;}
 
-#app{display:flex;flex-direction:column;min-height:100vh;}
+#app{display:flex;flex-direction:column;min-height:100vh;visibility:hidden;}
 
 /* ── HEADER dark ── */
 #header{background:var(--hbg);border-bottom:2px solid var(--hborder);padding:0 20px;position:sticky;top:0;z-index:100;}
@@ -320,10 +320,12 @@ button{cursor:pointer;}
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://apis.google.com/js/api.js"></script>
+<script src="assets/config.js"></script>
+<script src="assets/auth.js"></script>
 <script>
 // ── CONFIG ──────────────────────────────────────────────────────────────────
-const CLIENT_ID = '850622821617-7l6ll27pfs5hkfng3savskud4pqjiqcn.apps.googleusercontent.com';
-const SCOPES    = 'https://www.googleapis.com/auth/spreadsheets';
+const CLIENT_ID = ILBORGO_CONFIG.CLIENT_ID;
+const SCOPES    = ILBORGO_CONFIG.SCOPES;
 const TABS = { contratti:'Contratti', prenotazioni:'Prenotazioni', incassi:'Incassi' };
 let SHEET_ID = localStorage.getItem('aff_sheet_id') || '';
 let accessToken = null;
@@ -434,23 +436,27 @@ async function pullFromSheets(){
   }catch(e){ setSyncInd('error'); log('Errore: '+e.message); }
 }
 
-// ── GOOGLE AUTH ──────────────────────────────────────────────────────────────
+// ── GOOGLE AUTH — gate condiviso (assets/auth.js) ────────────────────────────
+let firstAuth = true;
+
 function initGapi(){
   gapi.load('client', async ()=>{
     try{
       await gapi.client.init({discoveryDocs:['https://sheets.googleapis.com/$discovery/rest?version=v4']});
       gapiReady=true;
-      const saved=localStorage.getItem('aff_gtoken');
-      if(saved){
-        accessToken=saved; gapi.client.setToken({access_token:saved});
-        try{
-          if(SHEET_ID) await gapi.client.sheets.spreadsheets.values.get({spreadsheetId:SHEET_ID,range:`${TABS.contratti}!A1:A1`});
-          updateAuthUI(true);
-          setTimeout(()=>autoLoad(),600);
-        }catch(e){ accessToken=null; localStorage.removeItem('aff_gtoken'); updateAuthUI(false); }
-      }
+      const tok=IlBorgoAuth.getToken();
+      if(tok){ accessToken=tok; gapi.client.setToken({access_token:tok}); }
+      if(IlBorgoAuth.isAuthed()) onAuthChange(true);
     }catch(e){ gapiReady=true; }
   });
+}
+
+function onAuthChange(connected){
+  accessToken = connected ? IlBorgoAuth.getToken() : null;
+  if(gapiReady){ try{ gapi.client.setToken(accessToken?{access_token:accessToken}:null); }catch(e){} }
+  updateAuthUI(connected);
+  if(connected && gapiReady && firstAuth){ firstAuth=false; setTimeout(()=>autoLoad(),400); }
+  renderAll();
 }
 
 async function autoLoad(){
@@ -462,41 +468,23 @@ async function autoLoad(){
   }catch(e){ await pushToSheets(); }
 }
 
-function signIn(){
-  const client=google.accounts.oauth2.initTokenClient({
-    client_id:CLIENT_ID, scope:SCOPES, prompt:'consent',
-    callback:(resp)=>{
-      if(resp.error){log('Errore: '+resp.error);return;}
-      accessToken=resp.access_token;
-      if(gapiReady) gapi.client.setToken({access_token:accessToken});
-      localStorage.setItem('aff_gtoken',accessToken);
-      updateAuthUI(true);
-      setTimeout(()=>autoLoad(),600);
-    }
-  });
-  client.requestAccessToken();
-}
-
-function signOut(){
-  try{google.accounts.oauth2.revoke(accessToken,()=>{});}catch(e){}
-  accessToken=null; localStorage.removeItem('aff_gtoken');
-  if(gapiReady) gapi.client.setToken(null);
-  updateAuthUI(false);
-}
+// wrapper per gli onclick della tab Sync
+function signIn(){ IlBorgoAuth.signIn().catch(()=>log('Accesso non riuscito')); }
+function signOut(){ IlBorgoAuth.signOut(); }
 
 function updateAuthUI(connected){
-  const dot=document.querySelector('#google-status .sync-dot');
   const txt=document.getElementById('google-status');
   const btnIn=document.getElementById('btn-signin');
   const btnOut=document.getElementById('btn-signout');
+  if(!txt) return;
   if(connected){
-    dot.className='sync-dot s-ok';
     txt.innerHTML='<span class="sync-dot s-ok"></span> Connesso a Google';
-    btnIn.style.display='none'; btnOut.style.display='inline-block';
+    if(btnIn) btnIn.style.display='none';
+    if(btnOut) btnOut.style.display='inline-block';
   }else{
-    dot.className='sync-dot s-err';
     txt.innerHTML='<span class="sync-dot s-err"></span> Non connesso';
-    btnIn.style.display='inline-block'; btnOut.style.display='none';
+    if(btnIn) btnIn.style.display='inline-block';
+    if(btnOut) btnOut.style.display='none';
   }
 }
 
@@ -812,6 +800,7 @@ function switchTab(id){
 window.addEventListener('load',()=>{
   const savedSheet=localStorage.getItem('aff_sheet_id')||'';
   document.getElementById('cfg-sheet-id').value=savedSheet;
+  IlBorgoAuth.onChange(onAuthChange);
   if(typeof gapi!=='undefined') initGapi();
   else setTimeout(()=>{if(typeof gapi!=='undefined') initGapi();},1500);
   renderAll();
